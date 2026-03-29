@@ -491,6 +491,32 @@ import changeLog from "../common/changeLog";
 import market from "../common/market";
 //防抖
 let timeout = null;
+
+function flattenFundListGroup(fundListGroup) {
+  if (!Array.isArray(fundListGroup)) {
+    return [];
+  }
+
+  const merged = [];
+  fundListGroup.forEach((group) => {
+    if (!group || !Array.isArray(group.funds)) {
+      return;
+    }
+    group.funds.forEach((fund) => {
+      if (!fund || !fund.code) {
+        return;
+      }
+      merged.push({
+        code: fund.code,
+        num: fund.num || 0,
+        cost: fund.cost || 0,
+      });
+    });
+  });
+
+  return merged;
+}
+
 function debounce(fn, wait = 700) {
   if (timeout !== null) clearTimeout(timeout);
   timeout = setTimeout(fn, wait);
@@ -772,11 +798,17 @@ export default {
           "grayscaleValue",
           "opacityValue",
           "sortTypeObj",
+          "fundListGroup",
         ],
         (res) => {
           this.fundList = res.fundList ? res.fundList : this.fundList;
-          if (res.fundListM) {
+          if (res.fundListM && res.fundListM.length) {
             this.fundListM = res.fundListM;
+          } else if (res.fundListGroup && res.fundListGroup.length) {
+            this.fundListM = flattenFundListGroup(res.fundListGroup);
+            chrome.storage.sync.set({
+              fundListM: this.fundListM,
+            });
           } else {
             for (const fund of this.fundList) {
               let val = {
@@ -916,7 +948,11 @@ export default {
     },
 
     option() {
-      chrome.tabs.create({ url: "/options/options.html" });
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        chrome.tabs.create({ url: chrome.runtime.getURL("options/options.html") });
+      }
     },
     reward() {
       this.rewardShadow = true;

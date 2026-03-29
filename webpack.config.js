@@ -13,6 +13,7 @@ const {
 const config = {
   mode: process.env.NODE_ENV,
   context: __dirname + '/src',
+  devtool: process.env.NODE_ENV === 'development' ? 'cheap-source-map' : false,
   entry: {
     'background': './background.js',
     'popup/popup': './popup/popup.js',
@@ -21,6 +22,7 @@ const config = {
   output: {
     path: __dirname + '/dist',
     filename: '[name].js',
+    globalObject: 'self',
   },
   resolve: {
     extensions: ['.js', '.vue'],
@@ -71,7 +73,7 @@ const config = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      global: 'window',
+      global: 'self',
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
@@ -98,12 +100,6 @@ const config = {
         transform: (content) => {
           const jsonContent = JSON.parse(content);
           jsonContent.version = version;
-
-          if (config.mode === 'development') {
-            //   jsonContent['content_security_policy'] = "script-src 'self' 'unsafe-eval'; object-src 'self'";
-            //   jsonContent['content_security_policy'] ="script-src 'self' https://jic.talkingdata.com; object-src 'self'";
-            jsonContent['content_security_policy'] = "script-src 'self' 'unsafe-eval' https://jic.talkingdata.com; object-src 'self'";
-          }
 
           return JSON.stringify(jsonContent, null, 2);
         },

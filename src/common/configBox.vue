@@ -56,6 +56,31 @@
 </template>
 
 <script>
+function flattenFundListGroup(config) {
+  if (!config || !Array.isArray(config.fundListGroup)) {
+    return [];
+  }
+
+  const merged = [];
+  config.fundListGroup.forEach((group) => {
+    if (!group || !Array.isArray(group.funds)) {
+      return;
+    }
+    group.funds.forEach((fund) => {
+      if (!fund || !fund.code) {
+        return;
+      }
+      merged.push({
+        code: fund.code,
+        num: fund.num || 0,
+        cost: fund.cost || 0,
+      });
+    });
+  });
+
+  return merged;
+}
+
 export default {
   components: {},
   name: "configBox",
@@ -102,6 +127,10 @@ export default {
       try {
         if (typeof JSON.parse(this.inputConfigStr) == "object") {
           let config = JSON.parse(this.inputConfigStr);
+
+          if ((!config.fundListM || !config.fundListM.length) && config.fundListGroup) {
+            config.fundListM = flattenFundListGroup(config);
+          }
 
           chrome.storage.sync.set(config, (val) => {
             this.$emit("success", false);

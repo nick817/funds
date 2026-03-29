@@ -1,7 +1,6 @@
 /* eslint-disable */
-require('./Blob');
-require('script-loader!file-saver');
-require('script-loader!xlsx/dist/xlsx.core.min');
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 function generateArray(table) {
   var out = [];

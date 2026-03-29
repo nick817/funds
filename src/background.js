@@ -1,5 +1,3 @@
-import axios from "axios";
-
 var Interval;
 var holiday;
 var RealtimeFundcode = null;
@@ -9,6 +7,51 @@ var showBadge = 1;
 var BadgeContent = 1;
 var BadgeType = 1;
 var userId = null;
+var ALARM_NAME = "badge-refresh";
+var MENU_ID = "open-popup-window";
+
+var flattenFundListGroup = (fundListGroup) => {
+  if (!Array.isArray(fundListGroup)) {
+    return [];
+  }
+
+  var merged = [];
+  fundListGroup.forEach((group) => {
+    if (!group || !Array.isArray(group.funds)) {
+      return;
+    }
+
+    group.funds.forEach((fund) => {
+      if (!fund || !fund.code) {
+        return;
+      }
+
+      merged.push({
+        code: fund.code,
+        num: fund.num || 0,
+        cost: fund.cost || 0,
+      });
+    });
+  });
+
+  return merged;
+};
+
+var getJson = (url) => {
+  return fetch(url).then((res) => res.json());
+};
+
+var setBadgeText = (text) => {
+  chrome.action.setBadgeText({
+    text: text,
+  });
+};
+
+var setBadgeBackgroundColor = (color) => {
+  chrome.action.setBadgeBackgroundColor({
+    color: color,
+  });
+};
 
 var getGuid = () => {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (
@@ -21,7 +64,7 @@ var getGuid = () => {
 }
 var getHoliday = () => {
   let url = "http://x2rr.github.io/funds/holiday.json";
-  return axios.get(url);
+  return getJson(url);
 };
 var checkHoliday = date => {
   var nowMonth = date.getMonth() + 1;
@@ -36,7 +79,7 @@ var checkHoliday = date => {
 
   let check = false;
   var nowDate = nowMonth + "-" + strDate;
-  let holidayList = holiday.data;
+  let holidayList = holiday && holiday.data ? holiday.data : holiday;
   for (const year in holidayList) {
     if (holidayList.hasOwnProperty(year)) {
       const yearData = holidayList[year];
@@ -135,21 +178,17 @@ var setBadge = (fundcode, Realtime, type) => {
       fundcode +
       "&_=" +
       new Date().getTime();
-    axios.get(url).then((res) => {
-      let data = res.data.data.diff;
+    getJson(url).then((res) => {
+      let data = res.data.diff;
       let text = data[0].f3.toString();
       let num = data[0].f3;
-      chrome.browserAction.setBadgeText({
-        text: text
-      });
+      setBadgeText(text);
       let color = Realtime ?
         num >= 0 ?
         "#F56C6C" :
         "#4eb61b" :
         "#4285f4";
-      chrome.browserAction.setBadgeBackgroundColor({
-        color: color
-      });
+      setBadgeBackgroundColor(color);
     });
   } else {
     if (type == 1) {
@@ -161,15 +200,14 @@ var setBadge = (fundcode, Realtime, type) => {
     let url =
       "https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=" + userId + "&Fcodes=" +
       fundStr;
-    axios
-      .get(url)
+    getJson(url)
       .then((res) => {
         let allAmount = 0;
         let allGains = 0;
         let textStr = null;
         let sumNum = 0;
         if (type == 1) {
-          let val = res.data.Datas[0];
+          let val = res.Datas[0];
           let data = {
             fundcode: val.FCODE,
             name: val.SHORTNAME,
@@ -220,7 +258,7 @@ var setBadge = (fundcode, Realtime, type) => {
           }
 
         } else {
-          res.data.Datas.forEach((val) => {
+          res.Datas.forEach((val) => {
             let slt = fundListM.filter(
               (item) => item.code == val.FCODE
             );
@@ -256,17 +294,13 @@ var setBadge = (fundcode, Realtime, type) => {
         }
 
 
-        chrome.browserAction.setBadgeText({
-          text: textStr
-        });
+        setBadgeText(textStr);
         let color = Realtime ?
           sumNum >= 0 ?
           "#F56C6C" :
           "#4eb61b" :
           "#4285f4";
-        chrome.browserAction.setBadgeBackgroundColor({
-          color: color
-        });
+        setBadgeBackgroundColor(color);
 
       })
       .catch((error) => {
@@ -280,30 +314,22 @@ var setBadge = (fundcode, Realtime, type) => {
 
 
 var startInterval = (RealtimeFundcode, type = 1) => {
-  endInterval(Interval);
+  endInterval();
   let Realtime = isDuringDate();
-  RealtimeFundcode = RealtimeFundcode;
   setBadge(RealtimeFundcode, Realtime, type);
-  let time = 2 * 60 * 1000;
-  if (type == 3) {
-    time = 10 * 1000;
-  }
-  Interval = setInterval(() => {
-    if (isDuringDate()) {
-      setBadge(RealtimeFundcode, true, type);
-    } else {
-      chrome.browserAction.setBadgeBackgroundColor({
-        color: "#4285f4"
-      });
-    }
-  }, time);
+  chrome.alarms.create(ALARM_NAME, {
+    periodInMinutes: 1,
+  });
+  Interval = {
+    id: RealtimeFundcode,
+    type: type,
+  };
 };
 
 var endInterval = () => {
-  clearInterval(Interval);
-  chrome.browserAction.setBadgeText({
-    text: ""
-  });
+  chrome.alarms.clear(ALARM_NAME);
+  Interval = null;
+  setBadgeText("");
 };
 
 var runStart = (RealtimeFundcode, RealtimeIndcode) => {
@@ -331,10 +357,19 @@ var runStart = (RealtimeFundcode, RealtimeIndcode) => {
 
 
 var getData = () => {
-  chrome.storage.sync.get(["holiday", "fundListM", "RealtimeFundcode", "RealtimeIndcode", "showBadge", "BadgeContent", "BadgeType", "userId"], res => {
+  chrome.storage.sync.get(["holiday", "fundListM", "fundListGroup", "RealtimeFundcode", "RealtimeIndcode", "showBadge", "BadgeContent", "BadgeType", "userId"], res => {
     RealtimeFundcode = res.RealtimeFundcode ? res.RealtimeFundcode : null;
     RealtimeIndcode = res.RealtimeIndcode ? res.RealtimeIndcode : null;
-    fundListM = res.fundListM ? res.fundListM : [];
+    if (res.fundListM && res.fundListM.length) {
+      fundListM = res.fundListM;
+    } else if (res.fundListGroup && res.fundListGroup.length) {
+      fundListM = flattenFundListGroup(res.fundListGroup);
+      chrome.storage.sync.set({
+        fundListM: fundListM,
+      });
+    } else {
+      fundListM = [];
+    }
     showBadge = res.showBadge ? res.showBadge : 1;
     BadgeContent = res.BadgeContent ? res.BadgeContent : 1;
     BadgeType = res.BadgeType ? res.BadgeType : 1;
@@ -352,10 +387,10 @@ var getData = () => {
     } else {
       getHoliday().then(res => {
         chrome.storage.sync.set({
-            holiday: res.data
+            holiday: res
           },
           () => {
-            holiday = res.data;
+            holiday = res;
             runStart(RealtimeFundcode, RealtimeIndcode);
           }
         );
@@ -375,23 +410,64 @@ var getData = () => {
 
 getData();
 
-chrome.contextMenus.create({
-  title: "以独立窗口模式打开",
-  contexts: ["browser_action"],
-  onclick: () => {
-    chrome.windows.create({
-      url: chrome.runtime.getURL("popup/popup.html"),
-      width: 700,
-      height: 550,
-      top: 200,
-      type: "popup",
-    }, (function (e) {
-      chrome.windows.update(e.id, {
-        focused: true
-      })
-    }))
+var setupContextMenu = () => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: MENU_ID,
+      title: "以独立窗口模式打开",
+      contexts: ["action"],
+    });
+  });
+};
+
+var openPopupWindow = () => {
+  chrome.windows.create({
+    url: chrome.runtime.getURL("popup/popup.html"),
+    width: 700,
+    height: 550,
+    top: 200,
+    type: "popup",
+  }, (function (e) {
+    chrome.windows.update(e.id, {
+      focused: true
+    })
+  }));
+};
+
+var handleAlarm = () => {
+  if (!Interval) {
+    return;
   }
-})
+  if (isDuringDate()) {
+    setBadge(Interval.id, true, Interval.type);
+  } else {
+    setBadgeBackgroundColor("#4285f4");
+  }
+};
+
+setupContextMenu();
+
+chrome.runtime.onInstalled.addListener(() => {
+  setupContextMenu();
+  getData();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  setupContextMenu();
+  getData();
+});
+
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId === MENU_ID) {
+    openPopupWindow();
+  }
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === ALARM_NAME) {
+    handleAlarm();
+  }
+});
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type == "DuringDate") {
@@ -446,17 +522,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sumNum = allGains;
     }
 
-    chrome.browserAction.setBadgeText({
-      text: textStr
-    });
+    setBadgeText(textStr);
     let color = isDuringDate() ?
       sumNum >= 0 ?
       "#F56C6C" :
       "#4eb61b" :
       "#4285f4";
-    chrome.browserAction.setBadgeBackgroundColor({
-      color: color
-    });
+    setBadgeBackgroundColor(color);
   }
   if (request.type == "endInterval") {
     endInterval();
@@ -488,16 +560,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       num = request.data.gains;
       textstr = formatNum(request.data.gains);
     }
-    chrome.browserAction.setBadgeText({
-      text: textstr
-    });
+    setBadgeText(textstr);
     let color = isDuringDate() ?
       num >= 0 ?
       "#F56C6C" :
       "#4eb61b" :
       "#4285f4";
-    chrome.browserAction.setBadgeBackgroundColor({
-      color: color
-    });
+    setBadgeBackgroundColor(color);
   }
 });

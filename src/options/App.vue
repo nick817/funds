@@ -281,7 +281,32 @@ import reward from "../common/reward";
 import changeLog from "../common/changeLog";
 import configBox from "../common/configBox";
 const { version } = require("../../package.json");
-import { export_json_to_excel } from "../common/js/vendor/Export2Excel";
+
+function flattenFundListGroup(fundListGroup) {
+  if (!Array.isArray(fundListGroup)) {
+    return [];
+  }
+
+  const merged = [];
+  fundListGroup.forEach((group) => {
+    if (!group || !Array.isArray(group.funds)) {
+      return;
+    }
+    group.funds.forEach((fund) => {
+      if (!fund || !fund.code) {
+        return;
+      }
+      merged.push({
+        code: fund.code,
+        num: fund.num || 0,
+        cost: fund.cost || 0,
+      });
+    });
+  });
+
+  return merged;
+}
+
 export default {
   components: {
     reward,
@@ -364,6 +389,7 @@ export default {
       var tHeader = ["基金代码", "基金名称", "持有份额", "成本价"];
       var filterVal = ["code", "name", "num", "cost"];
       var data = this.formatJson(filterVal, this.dataList);
+      const { export_json_to_excel } = require("../common/js/vendor/Export2Excel");
       export_json_to_excel(tHeader, data, "自选基金助手-基金配置");
     },
     formatJson(filterVal, jsonData) {
@@ -374,6 +400,7 @@ export default {
       let fileReader = new FileReader();
       fileReader.onload = (event) => {
         try {
+          const XLSX = require("xlsx");
           let data = event.target.result;
           let workbook = XLSX.read(data, {
             type: "binary",
@@ -496,7 +523,16 @@ export default {
               userId: this.userId,
             });
           }
-          this.fundListM = res.fundListM ? res.fundListM : [];
+          if (res.fundListM && res.fundListM.length) {
+            this.fundListM = res.fundListM;
+          } else if (res.fundListGroup && res.fundListGroup.length) {
+            this.fundListM = flattenFundListGroup(res.fundListGroup);
+            chrome.storage.sync.set({
+              fundListM: this.fundListM,
+            });
+          } else {
+            this.fundListM = [];
+          }
           this.showGSZ = res.showGSZ ? res.showGSZ : false;
           this.showCost = res.showCost ? res.showCost : false;
           this.showCostRate = res.showCostRate ? res.showCostRate : false;
@@ -507,6 +543,15 @@ export default {
           this.BadgeType = res.BadgeType ? res.BadgeType : 1;
         }
       );
+    },
+    getGuid() {
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(
+        c
+      ) {
+        var r = (Math.random() * 16) | 0,
+          v = c == "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
     },
     exportConfig() {
       chrome.storage.sync.get(null, (res) => {
