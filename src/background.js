@@ -1,3 +1,69 @@
+import axios from "axios";
+
+const extensionAction = chrome.action || chrome.browserAction;
+const CONTEXT_MENU_ID = "open-popup-window";
+const ALARM_NAME = "badge-refresh";
+
+const toNullableNumber = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? null : numberValue;
+};
+
+const parseFundEstimateResponse = (payload) => {
+  if (!payload || typeof payload !== "string") {
+    return null;
+  }
+
+  const matched = payload.match(/^jsonpgz\((.*)\);?$/);
+  if (!matched || !matched[1]) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(matched[1]);
+  } catch (error) {
+    return null;
+  }
+};
+
+const fetchFundEstimate = (code) => {
+  return axios
+    .get(`https://fundgz.1234567.com.cn/js/${code}.js`, {
+      params: {
+        rt: Date.now(),
+      },
+      responseType: "text",
+      transformResponse: [(value) => value],
+    })
+    .then((res) => parseFundEstimateResponse(res.data))
+    .catch(() => null);
+};
+
+const applyFundEstimate = (baseData, estimateData) => {
+  if (!estimateData) {
+    return baseData;
+  }
+
+  const estimatedNav = toNullableNumber(estimateData.gsz);
+  const estimatedRate = toNullableNumber(estimateData.gszzl);
+
+  if (estimatedNav === null) {
+    return baseData;
+  }
+
+  return {
+    ...baseData,
+    gsz: estimatedNav,
+    gszzl: estimatedRate === null ? baseData.gszzl : estimatedRate,
+    gztime: estimateData.gztime || baseData.gztime,
+    hasReplace: false,
+  };
+};
+
 var Interval;
 var holiday;
 var RealtimeFundcode = null;
@@ -7,8 +73,6 @@ var showBadge = 1;
 var BadgeContent = 1;
 var BadgeType = 1;
 var userId = null;
-var ALARM_NAME = "badge-refresh";
-var MENU_ID = "open-popup-window";
 
 var flattenFundListGroup = (fundListGroup) => {
   if (!Array.isArray(fundListGroup)) {
@@ -37,22 +101,6 @@ var flattenFundListGroup = (fundListGroup) => {
   return merged;
 };
 
-var getJson = (url) => {
-  return fetch(url).then((res) => res.json());
-};
-
-var setBadgeText = (text) => {
-  chrome.action.setBadgeText({
-    text: text,
-  });
-};
-
-var setBadgeBackgroundColor = (color) => {
-  chrome.action.setBadgeBackgroundColor({
-    color: color,
-  });
-};
-
 var getGuid = () => {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (
     c
@@ -63,8 +111,8 @@ var getGuid = () => {
   });
 }
 var getHoliday = () => {
-  let url = "http://x2rr.github.io/funds/holiday.json";
-  return getJson(url);
+  let url = "https://x2rr.github.io/funds/holiday.json";
+  return axios.get(url);
 };
 var checkHoliday = date => {
   var nowMonth = date.getMonth() + 1;
@@ -80,6 +128,9 @@ var checkHoliday = date => {
   let check = false;
   var nowDate = nowMonth + "-" + strDate;
   let holidayList = holiday && holiday.data ? holiday.data : holiday;
+  if (!holidayList) {
+    return false;
+  }
   for (const year in holidayList) {
     if (holidayList.hasOwnProperty(year)) {
       const yearData = holidayList[year];
@@ -178,17 +229,21 @@ var setBadge = (fundcode, Realtime, type) => {
       fundcode +
       "&_=" +
       new Date().getTime();
-    getJson(url).then((res) => {
-      let data = res.data.diff;
+    axios.get(url).then((res) => {
+      let data = res.data.data.diff;
       let text = data[0].f3.toString();
       let num = data[0].f3;
-      setBadgeText(text);
+      extensionAction.setBadgeText({
+        text: text
+      });
       let color = Realtime ?
         num >= 0 ?
         "#F56C6C" :
         "#4eb61b" :
         "#4285f4";
-      setBadgeBackgroundColor(color);
+      extensionAction.setBadgeBackgroundColor({
+        color: color
+      });
     });
   } else {
     if (type == 1) {
@@ -200,22 +255,27 @@ var setBadge = (fundcode, Realtime, type) => {
     let url =
       "https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=" + userId + "&Fcodes=" +
       fundStr;
-    getJson(url)
-      .then((res) => {
+    axios
+      .get(url)
+      .then(async (res) => {
         let allAmount = 0;
         let allGains = 0;
         let textStr = null;
         let sumNum = 0;
         if (type == 1) {
-          let val = res.Datas[0];
+          let val = res.data.Datas[0];
+          const nav = toNullableNumber(val.NAV);
+          const estimatedNav = toNullableNumber(val.GSZ);
+          const estimatedRate = toNullableNumber(val.GSZZL);
+          const actualRate = toNullableNumber(val.NAVCHGRT);
           let data = {
             fundcode: val.FCODE,
             name: val.SHORTNAME,
             jzrq: val.PDATE,
-            dwjz: isNaN(val.NAV) ? null : val.NAV,
-            gsz: isNaN(val.GSZ) ? null : val.GSZ,
-            gszzl: isNaN(val.GSZZL) ? 0 : val.GSZZL,
-            gztime: val.GZTIME,
+            dwjz: nav,
+            gsz: estimatedNav,
+            gszzl: estimatedRate,
+            gztime: val.GZTIME || val.PDATE || "--",
             num: 0
           };
           let slt = fundListM.filter(
@@ -229,18 +289,33 @@ var setBadge = (fundcode, Realtime, type) => {
 
           let num = data.num ? data.num : 0;
 
-          if (val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
-            data.gsz = val.NAV;
-            data.gszzl = isNaN(val.NAVCHGRT) ? 0 : val.NAVCHGRT;
+          if (val.GZTIME && val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
+            data.gsz = nav;
+            data.gszzl = actualRate;
             sum = (
               (data.dwjz - data.dwjz / (1 + data.gszzl * 0.01)) *
               num
             ).toFixed(1);
           } else {
+            if (data.gsz == null && actualRate !== null) {
+              data.gsz = nav;
+              data.gszzl = actualRate;
+              sum = (
+                (data.dwjz - data.dwjz / (1 + data.gszzl * 0.01)) *
+                num
+              ).toFixed(1);
+            } else 
             if (data.gsz) {
               sum = ((data.gsz - data.dwjz) * num).toFixed(1);
             }
 
+          }
+
+          if (estimatedNav === null) {
+            data = applyFundEstimate(data, await fetchFundEstimate(data.fundcode));
+            if (data.gsz != null) {
+              sum = ((data.gsz - data.dwjz) * num).toFixed(1);
+            }
           }
 
 
@@ -258,21 +333,34 @@ var setBadge = (fundcode, Realtime, type) => {
           }
 
         } else {
-          res.Datas.forEach((val) => {
+          const estimateEntries = await Promise.all(
+            (res.data.Datas || [])
+              .filter((val) => toNullableNumber(val.GSZ) === null)
+              .map(async (val) => [val.FCODE, await fetchFundEstimate(val.FCODE)])
+          );
+          const estimateMap = Object.fromEntries(estimateEntries);
+          res.data.Datas.forEach((val) => {
             let slt = fundListM.filter(
               (item) => item.code == val.FCODE
             );
             let num = slt[0].num ? slt[0].num : 0;
-            let NAV = isNaN(val.NAV) ? null : val.NAV;
+            let NAV = toNullableNumber(val.NAV);
             allAmount += NAV * num;
             var sum = 0;
-            if (val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
-              let NAVCHGRT = isNaN(val.NAVCHGRT) ? 0 : val.NAVCHGRT;
+            let NAVCHGRT = toNullableNumber(val.NAVCHGRT);
+            if (val.GZTIME && val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
               sum = (NAV - NAV / (1 + NAVCHGRT * 0.01)) * num
             } else {
-              let gsz = isNaN(val.GSZ) ? null : val.GSZ
+              let gsz = toNullableNumber(val.GSZ)
               if (gsz && NAV) {
                 sum = (gsz - NAV) * num
+              } else if (estimateMap[val.FCODE]) {
+                const estimatedNavFromApi = toNullableNumber(estimateMap[val.FCODE].gsz);
+                if (estimatedNavFromApi !== null && NAV !== null) {
+                  sum = (estimatedNavFromApi - NAV) * num;
+                }
+              } else if (NAVCHGRT !== null && NAV !== null) {
+                sum = (NAV - NAV / (1 + NAVCHGRT * 0.01)) * num
               }
             }
             allGains += sum;
@@ -294,13 +382,17 @@ var setBadge = (fundcode, Realtime, type) => {
         }
 
 
-        setBadgeText(textStr);
+        extensionAction.setBadgeText({
+          text: textStr
+        });
         let color = Realtime ?
           sumNum >= 0 ?
           "#F56C6C" :
           "#4eb61b" :
           "#4285f4";
-        setBadgeBackgroundColor(color);
+        extensionAction.setBadgeBackgroundColor({
+          color: color
+        });
 
       })
       .catch((error) => {
@@ -318,8 +410,8 @@ var startInterval = (RealtimeFundcode, type = 1) => {
   let Realtime = isDuringDate();
   setBadge(RealtimeFundcode, Realtime, type);
   chrome.alarms.create(ALARM_NAME, {
-    periodInMinutes: 1,
-  });
+    periodInMinutes: type == 3 ? 1 / 6 : 1,
+  }, time);
   Interval = {
     id: RealtimeFundcode,
     type: type,
@@ -329,7 +421,47 @@ var startInterval = (RealtimeFundcode, type = 1) => {
 var endInterval = () => {
   chrome.alarms.clear(ALARM_NAME);
   Interval = null;
-  setBadgeText("");
+  extensionAction.setBadgeText({
+    text: ""
+  });
+};
+
+var handleAlarm = () => {
+  if (!Interval) {
+    return;
+  }
+
+  if (isDuringDate()) {
+    setBadge(Interval.id, true, Interval.type);
+  } else {
+    extensionAction.setBadgeBackgroundColor({
+      color: "#4285f4"
+    });
+  }
+};
+
+var initContextMenus = () => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: CONTEXT_MENU_ID,
+      title: "以独立窗口模式打开",
+      contexts: ["action"],
+    });
+  });
+};
+
+var openPopupWindow = () => {
+  chrome.windows.create({
+    url: chrome.runtime.getURL("popup/popup.html"),
+    width: 1440,
+    height: 820,
+    top: 200,
+    type: "popup",
+  }, (function (e) {
+    chrome.windows.update(e.id, {
+      focused: true
+    })
+  }))
 };
 
 var runStart = (RealtimeFundcode, RealtimeIndcode) => {
@@ -387,10 +519,10 @@ var getData = () => {
     } else {
       getHoliday().then(res => {
         chrome.storage.sync.set({
-            holiday: res
+            holiday: res.data
           },
           () => {
-            holiday = res;
+            holiday = res.data;
             runStart(RealtimeFundcode, RealtimeIndcode);
           }
         );
@@ -410,55 +542,20 @@ var getData = () => {
 
 getData();
 
-var setupContextMenu = () => {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: MENU_ID,
-      title: "以独立窗口模式打开",
-      contexts: ["action"],
-    });
-  });
-};
-
-var openPopupWindow = () => {
-  chrome.windows.create({
-    url: chrome.runtime.getURL("popup/popup.html"),
-    width: 700,
-    height: 550,
-    top: 200,
-    type: "popup",
-  }, (function (e) {
-    chrome.windows.update(e.id, {
-      focused: true
-    })
-  }));
-};
-
-var handleAlarm = () => {
-  if (!Interval) {
-    return;
-  }
-  if (isDuringDate()) {
-    setBadge(Interval.id, true, Interval.type);
-  } else {
-    setBadgeBackgroundColor("#4285f4");
-  }
-};
-
-setupContextMenu();
+initContextMenus();
 
 chrome.runtime.onInstalled.addListener(() => {
-  setupContextMenu();
+  initContextMenus();
   getData();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  setupContextMenu();
+  initContextMenus();
   getData();
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (info.menuItemId === MENU_ID) {
+  if (info.menuItemId === CONTEXT_MENU_ID) {
     openPopupWindow();
   }
 });
@@ -488,19 +585,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let sumNum = 0;
     request.data.forEach((val) => {
       let slt = fundListM.filter(
-        (item) => item.code == val.FCODE
+        (item) => item.code == (val.FCODE || val.fundcode)
       );
       let num = slt[0].num ? slt[0].num : 0;
-      let NAV = isNaN(val.NAV) ? null : val.NAV;
+      let NAV = toNullableNumber(val.NAV || val.dwjz);
       allAmount += NAV * num;
       var sum = 0;
-      if (val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
-        let NAVCHGRT = isNaN(val.NAVCHGRT) ? 0 : val.NAVCHGRT;
+      let NAVCHGRT = toNullableNumber(val.NAVCHGRT || val.gszzl);
+      if (val.hasReplace) {
         sum = (NAV - NAV / (1 + NAVCHGRT * 0.01)) * num
       } else {
-        let gsz = isNaN(val.GSZ) ? null : val.GSZ;
+        let gsz = toNullableNumber(val.GSZ || val.gsz);
         if (gsz != null && NAV != null) {
           sum = (gsz - NAV) * num;
+        } else if (NAVCHGRT !== null && NAV !== null) {
+          sum = (NAV - NAV / (1 + NAVCHGRT * 0.01)) * num;
         }
 
       }
@@ -522,13 +621,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sumNum = allGains;
     }
 
-    setBadgeText(textStr);
+    extensionAction.setBadgeText({
+      text: textStr
+    });
     let color = isDuringDate() ?
       sumNum >= 0 ?
       "#F56C6C" :
       "#4eb61b" :
       "#4285f4";
-    setBadgeBackgroundColor(color);
+    extensionAction.setBadgeBackgroundColor({
+      color: color
+    });
   }
   if (request.type == "endInterval") {
     endInterval();
@@ -560,12 +663,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       num = request.data.gains;
       textstr = formatNum(request.data.gains);
     }
-    setBadgeText(textstr);
+    extensionAction.setBadgeText({
+      text: textstr
+    });
     let color = isDuringDate() ?
       num >= 0 ?
       "#F56C6C" :
       "#4eb61b" :
       "#4285f4";
-    setBadgeBackgroundColor(color);
+    extensionAction.setBadgeBackgroundColor({
+      color: color
+    });
   }
 });

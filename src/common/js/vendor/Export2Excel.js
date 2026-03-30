@@ -1,4 +1,5 @@
 /* eslint-disable */
+require('./Blob');
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 

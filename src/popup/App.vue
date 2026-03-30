@@ -7,92 +7,8 @@
     :style="[zoom, grayscale, opacity]"
   >
     <div>
-      <div
-        class="tab-row"
-        v-if="isGetStorage"
-        v-loading="loadingInd"
-        :element-loading-background="
-          darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
-        "
-        :style="seciList.length > 0 ? { minHeight: '55px' } : {}"
-      >
-        <div
-          v-for="(el, index) in indFundData"
-          :draggable="isEdit"
-          class="tab-col indFund"
-          :class="drag"
-          :key="el.f12"
-          @click.stop="!isEdit && indDetail(el)"
-          @dragstart="handleDragStart($event, el)"
-          @dragover.prevent="handleDragOver($event, el)"
-          @dragenter="handleDragEnter($event, el, index)"
-          @dragend="handleDragEnd($event, el)"
-        >
-          <h5>
-            {{ el.f14 }}
-            <span
-              v-if="isEdit"
-              @click="dltIndFund(index)"
-              class="dltBtn edit red btn"
-              >✖</span
-            >
-          </h5>
-          <p :class="el.f3 >= 0 ? 'up' : 'down'">
-            {{ el.f2
-            }}<input
-              v-if="isEdit && BadgeContent == 3"
-              @click="sltInd(el)"
-              :class="el.f13 + '.' + el.f12 == RealtimeIndcode ? 'slt' : ''"
-              class="btn edit"
-              style="margin-left:5px"
-              value="✔"
-              type="button"
-            />
-          </p>
-          <p :class="el.f3 >= 0 ? 'up' : 'down'">
-            {{ el.f4 }}&nbsp;&nbsp;{{ el.f3 }}%
-          </p>
-        </div>
-        <div v-if="isEdit && indFundData.length < 4" class="tab-col">
-          <div
-            v-if="!showAddSeciInput"
-            class="addSeci"
-            @click="() => (showAddSeciInput = true)"
-          >
-            添加
-          </div>
-          <div v-else>
-            <div style="padding-top:2px">
-              <el-select
-                size="mini"
-                :popper-append-to-body="false"
-                v-model="sltSeci"
-                style="width:110px"
-                placeholder="请选择"
-              >
-                <el-option
-                  v-for="item in userSeciList"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                ></el-option>
-              </el-select>
-            </div>
-            <div style="margin-top:4px">
-              <input
-                class="btn"
-                type="button"
-                value="取消"
-                @click="() => (showAddSeciInput = false)"
-              />
-              <input class="btn" type="button" value="确定" @click="saveSeci" />
-            </div>
-          </div>
-        </div>
-      </div>
       <div v-if="isEdit" class="input-row">
         <span>添加新基金:</span>
-        <!-- <input v-model="fundcode" class="btn" type="text" placeholder="请输入基金代码" /> -->
         <el-select
           v-model="fundcode"
           multiple
@@ -125,232 +41,670 @@
       <p v-if="isEdit" class="tips center">
         部分新发基金或QDII基金可以搜索到，但可能无法获取估值情况
       </p>
-      <div
-        v-if="isGetStorage"
-        v-loading="loadingList"
-        :element-loading-background="
-          darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
-        "
-        class="table-row"
-        style="min-height:160px"
-      >
-        <table :class="tableHeight">
-          <thead>
-            <tr>
-              <th class="align-left">基金名称（{{ dataList.length }}）</th>
-              <th v-if="isEdit">基金代码</th>
-              <th v-if="showGSZ && !isEdit">估算净值</th>
-              <th
-                style="text-align:center"
-                v-if="isEdit && (showCostRate || showCost)"
-              >
-                成本价
-              </th>
-              <th @click="sortList('amount')" v-if="showAmount" class="pointer">
-                持有额
-                <span :class="sortType.amount" class="down-arrow"></span>
-              </th>
-              <th
-                @click="sortList('costGains')"
-                v-if="showCost"
-                class="pointer"
-              >
-                持有收益
-                <span :class="sortType.costGains" class="down-arrow"></span>
-              </th>
-              <th
-                @click="sortList('costGainsRate')"
-                v-if="showCostRate"
-                class="pointer"
-              >
-                持有收益率
-                <span :class="sortType.costGainsRate" class="down-arrow"></span>
-              </th>
-              <th @click="sortList('gszzl')" class="pointer">
-                涨跌幅
-                <span :class="sortType.gszzl" class="down-arrow"></span>
-              </th>
-              <th @click="sortList('gains')" v-if="showGains" class="pointer">
-                估算收益
-                <span :class="sortType.gains" class="down-arrow"></span>
-              </th>
-              <th v-if="!isEdit">更新时间</th>
-              <th
-                style="text-align:center"
-                v-if="
-                  isEdit &&
-                    (showAmount || showGains || showCost || showCostRate)
+      <div v-if="isGetStorage" class="holdings-tabs-wrap">
+        <el-tabs v-model="activeHoldingsTab" class="page-tabs" stretch>
+          <el-tab-pane label="首页" name="home">
+            <div class="home-pane">
+              <div
+                class="tab-row market-overview"
+                v-loading="loadingInd"
+                :element-loading-background="
+                  darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
                 "
+                :style="seciList.length > 0 ? { minHeight: '55px' } : {}"
               >
-                持有份额
-              </th>
-              <th v-if="isEdit && BadgeContent == 1">特别关注</th>
-              <th v-if="isEdit">删除</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(el, index) in dataList"
-              :key="el.fundcode"
-              :draggable="isEdit"
-              :class="drag"
-              @dragstart="handleDragStart($event, el)"
-              @dragover.prevent="handleDragOver($event, el)"
-              @dragenter="handleDragEnter($event, el, index)"
-              @dragend="handleDragEnd($event, el)"
+                <div
+                  v-for="(el, index) in indFundData"
+                  :key="el.f12"
+                  :draggable="isEdit"
+                  class="tab-col indFund"
+                  :class="drag"
+                  @click.stop="!isEdit && indDetail(el)"
+                  @dragstart="handleDragStart($event, el)"
+                  @dragover.prevent="handleDragOver($event, el)"
+                  @dragenter="handleDragEnter($event, el, index)"
+                  @dragend="handleDragEnd($event, el)"
+                >
+                  <h5>
+                    {{ el.f14 }}
+                    <span
+                      v-if="isEdit"
+                      @click="dltIndFund(index)"
+                      class="dltBtn edit red btn"
+                      >✖</span
+                    >
+                  </h5>
+                  <p :class="el.f3 >= 0 ? 'up' : 'down'">
+                    {{ el.f2
+                    }}<input
+                      v-if="isEdit && BadgeContent == 3"
+                      @click="sltInd(el)"
+                      :class="el.f13 + '.' + el.f12 == RealtimeIndcode ? 'slt' : ''"
+                      class="btn edit"
+                      style="margin-left:5px"
+                      value="✔"
+                      type="button"
+                    />
+                  </p>
+                  <p :class="el.f3 >= 0 ? 'up' : 'down'">
+                    {{ el.f4 }}&nbsp;&nbsp;{{ el.f3 }}%
+                  </p>
+                </div>
+                <div v-if="isEdit && indFundData.length < 4" class="tab-col">
+                  <div
+                    v-if="!showAddSeciInput"
+                    class="addSeci"
+                    @click="() => (showAddSeciInput = true)"
+                  >
+                    添加
+                  </div>
+                  <div v-else>
+                    <div style="padding-top:2px">
+                      <el-select
+                        size="mini"
+                        :popper-append-to-body="false"
+                        v-model="sltSeci"
+                        style="width:110px"
+                        placeholder="请选择"
+                      >
+                        <el-option
+                          v-for="item in userSeciList"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        ></el-option>
+                      </el-select>
+                    </div>
+                    <div style="margin-top:4px">
+                      <input
+                        class="btn"
+                        type="button"
+                        value="取消"
+                        @click="() => (showAddSeciInput = false)"
+                      />
+                      <input class="btn" type="button" value="确定" @click="saveSeci" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="summary-panel summary-dashboard" v-if="showCost || showGains || showAmount">
+                <div class="summary-row summary-row-home">
+                  <div v-if="showAmount && dataList.length" class="summary-card summary-card-soft summary-card-red">
+                    <span class="summary-label">基金持仓</span>
+                    <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  </div>
+                  <div v-if="showGains && dataList.length" class="summary-card summary-card-green">
+                    <span class="summary-label">基金估算</span>
+                    <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
+                  </div>
+                  <div v-if="showCost && dataList.length" class="summary-card summary-card-red">
+                    <span class="summary-label">基金持有</span>
+                    <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
+                  </div>
+                  <div v-if="showAmount && stockDataList.length" class="summary-card summary-card-soft summary-card-red">
+                    <span class="summary-label">股票持仓</span>
+                    <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  </div>
+                  <div v-if="showGains && stockDataList.length" class="summary-card summary-card-green">
+                    <span class="summary-label">股票当日</span>
+                    <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
+                  </div>
+                  <div v-if="showCost && stockDataList.length" class="summary-card summary-card-red">
+                    <span class="summary-label">股票持有</span>
+                    <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
+                  </div>
+                  <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                    <span class="summary-label">持仓总额</span>
+                    <strong class="summary-value">{{ parseFloat(allAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  </div>
+                  <div v-if="showGains" class="summary-card summary-card-green">
+                    <span class="summary-label">估算金额</span>
+                    <strong class="summary-value">{{ parseFloat(allGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(allGains[1]) ? '' : '（' + allGains[1] + '%）' }}</span>
+                  </div>
+                  <div v-if="showCost" class="summary-card summary-card-red">
+                    <span class="summary-label">持有收益</span>
+                    <strong class="summary-value">{{ parseFloat(allCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                    <span class="summary-meta">{{ isNaN(allCostGains[1]) ? '' : '（' + allCostGains[1] + '%）' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane :label="`基金（${dataList.length}）`" name="fund">
+            <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
+              <div class="summary-row tab-summary-row">
+                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                  <span class="summary-label">基金持仓</span>
+                  <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div v-if="showGains" class="summary-card summary-card-green">
+                  <span class="summary-label">基金估算</span>
+                  <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
+                </div>
+                <div v-if="showCost" class="summary-card summary-card-red">
+                  <span class="summary-label">基金持有</span>
+                  <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
+                </div>
+              </div>
+            </div>
+            <div
+              v-loading="loadingList"
+              :element-loading-background="
+                darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
+              "
+              class="table-row"
+              style="min-height:160px"
             >
-              <td
-                :class="
-                  isEdit ? 'fundName-noclick align-left' : 'fundName align-left'
-                "
-                :title="el.name"
-                @click.stop="!isEdit && fundDetail(el)"
-              >
-                <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
-              </td>
-              <td v-if="isEdit">{{ el.fundcode }}</td>
-              <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
-              <td v-if="isEdit && (showCostRate || showCost)">
-                <input
-                  class="btn num"
-                  placeholder="持仓成本价"
-                  v-model="el.cost"
-                  @input="changeCost(el, index)"
-                  type="text"
-                />
-              </td>
+              <table :class="tableHeight">
+                <thead>
+                  <tr>
+                    <th class="align-left">基金名称（{{ dataList.length }}）</th>
+                    <th v-if="isEdit">基金代码</th>
+                    <th v-if="showGSZ && !isEdit">估算净值</th>
+                    <th
+                      style="text-align:center"
+                      v-if="isEdit && (showCostRate || showCost)"
+                    >
+                      成本价
+                    </th>
+                    <th @click="sortList('amount')" v-if="showAmount" class="pointer">
+                      持有额
+                      <span :class="sortType.amount" class="down-arrow"></span>
+                    </th>
+                    <th
+                      @click="sortList('costGains')"
+                      v-if="showCost"
+                      class="pointer"
+                    >
+                      持有收益
+                      <span :class="sortType.costGains" class="down-arrow"></span>
+                    </th>
+                    <th
+                      @click="sortList('costGainsRate')"
+                      v-if="showCostRate"
+                      class="pointer"
+                    >
+                      持有收益率
+                      <span :class="sortType.costGainsRate" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gszzl')" class="pointer">
+                      涨跌幅
+                      <span :class="sortType.gszzl" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gains')" v-if="showGains" class="pointer">
+                      估算收益
+                      <span :class="sortType.gains" class="down-arrow"></span>
+                    </th>
+                    <th v-if="!isEdit">更新时间</th>
+                    <th
+                      style="text-align:center"
+                      v-if="
+                        isEdit &&
+                          (showAmount || showGains || showCost || showCostRate)
+                      "
+                    >
+                      持有份额
+                    </th>
+                    <th v-if="isEdit && BadgeContent == 1">特别关注</th>
+                    <th v-if="isEdit">删除</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(el, index) in dataList"
+                    :key="el.fundcode"
+                    :draggable="isEdit"
+                    :class="drag"
+                    @dragstart="handleDragStart($event, el)"
+                    @dragover.prevent="handleDragOver($event, el)"
+                    @dragenter="handleDragEnter($event, el, index)"
+                    @dragend="handleDragEnd($event, el)"
+                  >
+                    <td
+                      :class="
+                        isEdit ? 'fundName-noclick align-left' : 'fundName align-left'
+                      "
+                      :title="el.name"
+                      @click.stop="!isEdit && fundDetail(el)"
+                    >
+                      <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
+                    </td>
+                    <td v-if="isEdit">{{ el.fundcode }}</td>
+                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="isEdit && (showCostRate || showCost)">
+                      <input
+                        class="btn num"
+                        placeholder="持仓成本价"
+                        v-model="el.cost"
+                        @input="changeCost(el, index)"
+                        type="text"
+                      />
+                    </td>
 
-              <td v-if="showAmount">
-                {{
-                  parseFloat(el.amount).toLocaleString("zh", {
-                    minimumFractionDigits: 2,
-                  })
-                }}
-              </td>
-              <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">
-                {{
-                  parseFloat(el.costGains).toLocaleString("zh", {
-                    minimumFractionDigits: 2,
-                  })
-                }}
-              </td>
-              <td
-                v-if="showCostRate"
-                :class="el.costGainsRate >= 0 ? 'up' : 'down'"
-              >
-                {{ el.cost > 0 ? el.costGainsRate + "%" : "" }}
-              </td>
-              <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
-              <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">
-                {{
-                  parseFloat(el.gains).toLocaleString("zh", {
-                    minimumFractionDigits: 2,
-                  })
-                }}
-              </td>
-              <td v-if="!isEdit">
-                {{
-                  el.hasReplace ? el.gztime.substr(5, 5) : el.gztime.substr(10)
-                }}
-                
-              </td>
-              <th
-                style="text-align:center"
-                v-if="
-                  isEdit &&
-                    (showAmount || showGains || showCost || showCostRate)
-                "
-              >
-                <input
-                  class="btn num"
-                  placeholder="输入持有份额"
-                  v-model="el.num"
-                  @input="changeNum(el, index)"
-                  type="text"
-                />
-              </th>
-              <td v-if="isEdit && BadgeContent == 1">
-                <input
-                  @click="slt(el.fundcode)"
-                  :class="el.fundcode == RealtimeFundcode ? 'slt' : ''"
-                  class="btn edit"
-                  value="✔"
-                  type="button"
-                />
-              </td>
-              <td v-if="isEdit">
-                <input
-                  @click="dlt(el.fundcode)"
-                  class="btn red edit"
-                  value="✖"
-                  type="button"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- <table :class="tableHeight" class="detailTable">
-          <thead>
-            <tr>
-              <th class="align-left">
-                <div>基金名称</div>
-                <p>基金编码</p>
-              </th>
-              <th>
-                <div>持有收益率</div>
-                <p>持有收益</p>
-              </th>
-              <th>
-                <div>估算涨幅</div>
-                <p>估算收益</p>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(el, index) in dataList"
-              :key="el.fundcode"
-              :draggable="isEdit"
-              :class="drag"
-              @dragstart="handleDragStart($event, el)"
-              @dragover.prevent="handleDragOver($event, el)"
-              @dragenter="handleDragEnter($event, el, index)"
-              @dragend="handleDragEnd($event, el)"
+                    <td v-if="showAmount">
+                      {{
+                        parseFloat(el.amount).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">
+                      {{
+                        parseFloat(el.costGains).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td
+                      v-if="showCostRate"
+                      :class="el.costGainsRate >= 0 ? 'up' : 'down'"
+                    >
+                      {{ el.cost > 0 ? el.costGainsRate + "%" : "" }}
+                    </td>
+                    <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">
+                      {{
+                        parseFloat(el.gains).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
+                    <th
+                      style="text-align:center"
+                      v-if="
+                        isEdit &&
+                          (showAmount || showGains || showCost || showCostRate)
+                      "
+                    >
+                      <input
+                        class="btn num"
+                        placeholder="输入持有份额"
+                        v-model="el.num"
+                        @input="changeNum(el, index)"
+                        type="text"
+                      />
+                    </th>
+                    <td v-if="isEdit && BadgeContent == 1">
+                      <input
+                        @click="slt(el.fundcode)"
+                        :class="el.fundcode == RealtimeFundcode ? 'slt' : ''"
+                        class="btn edit"
+                        value="✔"
+                        type="button"
+                      />
+                    </td>
+                    <td v-if="isEdit">
+                      <input
+                        @click="dlt(el.fundcode)"
+                        class="btn red edit"
+                        value="✖"
+                        type="button"
+                      />
+                    </td>
+                  </tr>
+                  <tr v-if="!dataList.length">
+                    <td class="empty-row" :colspan="fundTableColspan">暂无基金持仓</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane :label="`财务自由（${freeDataList.length}）`" name="free">
+            <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
+              <div class="summary-row tab-summary-row">
+                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                  <span class="summary-label">自由持仓</span>
+                  <strong class="summary-value">{{ parseFloat(freeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div v-if="showGains" class="summary-card summary-card-green">
+                  <span class="summary-label">自由估算</span>
+                  <strong class="summary-value">{{ parseFloat(freeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(freeGains[1]) ? '' : '（' + freeGains[1] + '%）' }}</span>
+                </div>
+                <div v-if="showCost" class="summary-card summary-card-red">
+                  <span class="summary-label">自由持有</span>
+                  <strong class="summary-value">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(freeCostGains[1]) ? '' : '（' + freeCostGains[1] + '%）' }}</span>
+                </div>
+              </div>
+            </div>
+            <div
+              v-loading="loadingList"
+              :element-loading-background="
+                darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
+              "
+              class="table-row"
+              style="min-height:160px"
             >
-              <td
-                :class="
-                  isEdit ? 'fundName-noclick align-left' : 'fundName align-left'
-                "
-                :title="el.name"
-                @click.stop="!isEdit && fundDetail(el)"
-              >
-                <div>{{ el.name }}</div>
-                <p>{{ el.fundcode }}</p>
-              </td>
-              <td :class="el.costGains >= 0 ? 'up' : 'down'">
-                <div>{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</div>
-                <p>
-                  {{
-                  parseFloat(el.costGains).toLocaleString("zh", {
-                    minimumFractionDigits: 2,
-                  })
-                }}
-                </p>
-              </td>
-              <td :class="el.gszzl >= 0 ? 'up' : 'down'">
-                <div>{{ el.gszzl }}%</div>
-                <p>
-                  {{
-                    parseFloat(el.gains).toLocaleString("zh", {
-                      minimumFractionDigits: 2,
-                    })
-                  }}
-                </p>
-              </td>
-            </tr>
-          </tbody>
-        </table> -->
+              <table :class="tableHeight">
+                <thead>
+                  <tr>
+                    <th class="align-left">基金名称（{{ freeDataList.length }}）</th>
+                    <th v-if="isEdit">基金代码</th>
+                    <th v-if="showGSZ && !isEdit">估算净值</th>
+                    <th style="text-align:center" v-if="isEdit && (showCostRate || showCost)">成本价</th>
+                    <th @click="sortList('amount')" v-if="showAmount" class="pointer">
+                      持有额 <span :class="sortType.amount" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('costGains')" v-if="showCost" class="pointer">
+                      持有收益 <span :class="sortType.costGains" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('costGainsRate')" v-if="showCostRate" class="pointer">
+                      持有收益率 <span :class="sortType.costGainsRate" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gszzl')" class="pointer">
+                      涨跌幅 <span :class="sortType.gszzl" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gains')" v-if="showGains" class="pointer">
+                      估算收益 <span :class="sortType.gains" class="down-arrow"></span>
+                    </th>
+                    <th v-if="!isEdit">更新时间</th>
+                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">持有份额</th>
+                    <th v-if="isEdit && BadgeContent == 1">特别关注</th>
+                    <th v-if="isEdit">删除</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(el, index) in freeDataList"
+                    :key="el.fundcode"
+                    :draggable="isEdit"
+                    :class="drag"
+                    @dragstart="handleDragStart($event, el)"
+                    @dragover.prevent="handleDragOver($event, el)"
+                    @dragenter="handleDragEnter($event, el, index)"
+                    @dragend="handleDragEnd($event, el)"
+                  >
+                    <td :class="isEdit ? 'fundName-noclick align-left' : 'fundName align-left'" :title="el.name" @click.stop="!isEdit && fundDetail(el)">
+                      <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
+                    </td>
+                    <td v-if="isEdit">{{ el.fundcode }}</td>
+                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="isEdit && (showCostRate || showCost)">
+                      <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
+                    <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
+                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
+                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
+                    </th>
+                    <td v-if="isEdit && BadgeContent == 1">
+                      <input @click="slt(el.fundcode)" :class="el.fundcode == RealtimeFundcode ? 'slt' : ''" class="btn edit" value="✔" type="button" />
+                    </td>
+                    <td v-if="isEdit">
+                      <input @click="dlt(el.fundcode)" class="btn red edit" value="✖" type="button" />
+                    </td>
+                  </tr>
+                  <tr v-if="!freeDataList.length">
+                    <td class="empty-row" :colspan="fundTableColspan">暂无财务自由账户持仓</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane :label="`财务安全（${safeDataList.length}）`" name="safe">
+            <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
+              <div class="summary-row tab-summary-row">
+                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                  <span class="summary-label">安全持仓</span>
+                  <strong class="summary-value">{{ parseFloat(safeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div v-if="showGains" class="summary-card summary-card-green">
+                  <span class="summary-label">安全估算</span>
+                  <strong class="summary-value">{{ parseFloat(safeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(safeGains[1]) ? '' : '（' + safeGains[1] + '%）' }}</span>
+                </div>
+                <div v-if="showCost" class="summary-card summary-card-red">
+                  <span class="summary-label">安全持有</span>
+                  <strong class="summary-value">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(safeCostGains[1]) ? '' : '（' + safeCostGains[1] + '%）' }}</span>
+                </div>
+              </div>
+            </div>
+            <div
+              v-loading="loadingList"
+              :element-loading-background="
+                darkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.9)'
+              "
+              class="table-row"
+              style="min-height:160px"
+            >
+              <table :class="tableHeight">
+                <thead>
+                  <tr>
+                    <th class="align-left">基金名称（{{ safeDataList.length }}）</th>
+                    <th v-if="isEdit">基金代码</th>
+                    <th v-if="showGSZ && !isEdit">估算净值</th>
+                    <th style="text-align:center" v-if="isEdit && (showCostRate || showCost)">成本价</th>
+                    <th @click="sortList('amount')" v-if="showAmount" class="pointer">
+                      持有额 <span :class="sortType.amount" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('costGains')" v-if="showCost" class="pointer">
+                      持有收益 <span :class="sortType.costGains" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('costGainsRate')" v-if="showCostRate" class="pointer">
+                      持有收益率 <span :class="sortType.costGainsRate" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gszzl')" class="pointer">
+                      涨跌幅 <span :class="sortType.gszzl" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortList('gains')" v-if="showGains" class="pointer">
+                      估算收益 <span :class="sortType.gains" class="down-arrow"></span>
+                    </th>
+                    <th v-if="!isEdit">更新时间</th>
+                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">持有份额</th>
+                    <th v-if="isEdit && BadgeContent == 1">特别关注</th>
+                    <th v-if="isEdit">删除</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(el, index) in safeDataList"
+                    :key="el.fundcode"
+                    :draggable="isEdit"
+                    :class="drag"
+                    @dragstart="handleDragStart($event, el)"
+                    @dragover.prevent="handleDragOver($event, el)"
+                    @dragenter="handleDragEnter($event, el, index)"
+                    @dragend="handleDragEnd($event, el)"
+                  >
+                    <td :class="isEdit ? 'fundName-noclick align-left' : 'fundName align-left'" :title="el.name" @click.stop="!isEdit && fundDetail(el)">
+                      <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
+                    </td>
+                    <td v-if="isEdit">{{ el.fundcode }}</td>
+                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="isEdit && (showCostRate || showCost)">
+                      <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
+                    <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
+                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
+                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
+                    </th>
+                    <td v-if="isEdit && BadgeContent == 1">
+                      <input @click="slt(el.fundcode)" :class="el.fundcode == RealtimeFundcode ? 'slt' : ''" class="btn edit" value="✔" type="button" />
+                    </td>
+                    <td v-if="isEdit">
+                      <input @click="dlt(el.fundcode)" class="btn red edit" value="✖" type="button" />
+                    </td>
+                  </tr>
+                  <tr v-if="!safeDataList.length">
+                    <td class="empty-row" :colspan="fundTableColspan">暂无财务安全账户持仓</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane :label="`股票（${stockDataList.length}）`" name="stock">
+            <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
+              <div class="summary-row tab-summary-row">
+                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                  <span class="summary-label">股票持仓</span>
+                  <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div v-if="showGains" class="summary-card summary-card-green">
+                  <span class="summary-label">股票当日</span>
+                  <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
+                </div>
+                <div v-if="showCost" class="summary-card summary-card-red">
+                  <span class="summary-label">股票持有</span>
+                  <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="table-row stock-table-row" style="min-height:160px">
+              <table :class="tableHeight">
+                <thead>
+                  <tr>
+                    <th class="align-left">股票名称（{{ stockDataList.length }}）</th>
+                    <th v-if="isEdit">股票代码</th>
+                    <th
+                      @click="sortStockList('latestPriceValue')"
+                      class="pointer"
+                    >
+                      最新价
+                      <span :class="stockSortType.latestPriceValue" class="down-arrow"></span>
+                    </th>
+                    <th
+                      style="text-align:center"
+                      v-if="showCostRate || showCost"
+                    >
+                      成本价
+                    </th>
+                    <th @click="sortStockList('amount')" v-if="showAmount" class="pointer">
+                      持有额
+                      <span :class="stockSortType.amount" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortStockList('costGains')" v-if="showCost" class="pointer">
+                      持有收益
+                      <span :class="stockSortType.costGains" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortStockList('costGainsRate')" v-if="showCostRate" class="pointer">
+                      持有收益率
+                      <span :class="stockSortType.costGainsRate" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortStockList('gszzl')" class="pointer">
+                      涨跌幅
+                      <span :class="stockSortType.gszzl" class="down-arrow"></span>
+                    </th>
+                    <th @click="sortStockList('gains')" v-if="showGains" class="pointer">
+                      当日收益
+                      <span :class="stockSortType.gains" class="down-arrow"></span>
+                    </th>
+                    <th v-if="!isEdit">更新时间</th>
+                    <th
+                      style="text-align:center"
+                      v-if="
+                        isEdit &&
+                          (showAmount || showGains || showCost || showCostRate)
+                      "
+                    >
+                      持有股数
+                    </th>
+                    <th v-if="isEdit">删除</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(el, index) in stockDataList" :key="el.stockcode">
+                    <td
+                      :class="isEdit ? 'fundName-noclick align-left stockNameCell' : 'fundName align-left stockNameCell'"
+                      :title="el.name"
+                      @click.stop="!isEdit && stockDetail(el)"
+                    >
+                      {{ el.name }}
+                    </td>
+                    <td v-if="isEdit">{{ el.stockcode }}</td>
+                    <td>{{ el.latestPrice }}</td>
+                    <td v-if="showCostRate || showCost">
+                      <input
+                        v-if="isEdit"
+                        class="btn num"
+                        placeholder="持仓成本价"
+                        v-model="el.cost"
+                        @input="changeStockCost(el, index)"
+                        type="text"
+                      />
+                      <span v-else>{{ formatStockPrice(el.cost) }}</span>
+                    </td>
+                    <td v-if="showAmount">
+                      {{
+                        parseFloat(el.amount).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">
+                      {{
+                        parseFloat(el.costGains).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td
+                      v-if="showCostRate"
+                      :class="el.costGainsRate >= 0 ? 'up' : 'down'"
+                    >
+                      {{ el.cost > 0 ? el.costGainsRate + "%" : "" }}
+                    </td>
+                    <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">
+                      {{
+                        parseFloat(el.gains).toLocaleString("zh", {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </td>
+                    <td v-if="!isEdit">{{ formatStockUpdateTime(el.gztime) }}</td>
+                    <th
+                      style="text-align:center"
+                      v-if="
+                        isEdit &&
+                          (showAmount || showGains || showCost || showCostRate)
+                      "
+                    >
+                      <input
+                        class="btn num"
+                        placeholder="输入持有股数"
+                        v-model="el.num"
+                        @input="changeStockNum(el, index)"
+                        type="text"
+                      />
+                    </th>
+                    <td v-if="isEdit">
+                      <input
+                        @click="dltStock(el.stockcode)"
+                        class="btn red edit"
+                        value="✖"
+                        type="button"
+                      />
+                    </td>
+                  </tr>
+                  <tr v-if="!stockDataList.length">
+                    <td class="empty-row" :colspan="stockTableColspan">暂无股票持仓</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
     <p v-if="isEdit" class="tips">
@@ -386,7 +740,7 @@
       <input v-model="containerHeight" type="number" /> -->
     </div>
 
-    <div class="input-row">
+    <div class="input-row action-row">
       <input class="btn" type="button" @click="market" value="行情中心" />
       <input
         class="btn"
@@ -413,42 +767,6 @@
         title="φ(>ω<*)"
         value="打赏"
         @click="reward"
-      />
-    </div>
-    <div class="input-row" v-if="showCost || showGains">
-      <input
-        v-if="showGains"
-        class="btn"
-        :class="allGains[0] >= 0 ? 'btn-up' : 'btn-down'"
-        type="button"
-        :title="
-          allGains[0] >= 0 ? 'd=====(￣▽￣*)b 赞一个' : '∑(っ°Д°;)っ 大事不好啦'
-        "
-        :value="
-          '日收益：' +
-            parseFloat(allGains[0]).toLocaleString('zh', {
-              minimumFractionDigits: 2,
-            }) +
-            (isNaN(allGains[1]) ? '' : '（' + allGains[1] + '%）')
-        "
-      />
-      <input
-        v-if="showCost"
-        class="btn"
-        :class="allCostGains[0] >= 0 ? 'btn-up' : 'btn-down'"
-        type="button"
-        :title="
-          allCostGains[0] >= 0
-            ? 'd=====(￣▽￣*)b 赞一个'
-            : '∑(っ°Д°;)っ 大事不好啦'
-        "
-        :value="
-          '持有收益：' +
-            parseFloat(allCostGains[0]).toLocaleString('zh', {
-              minimumFractionDigits: 2,
-            }) +
-            (isNaN(allCostGains[1]) ? '' : '（' + allCostGains[1] + '%）')
-        "
       />
     </div>
     <div
@@ -542,6 +860,8 @@ export default {
       RealtimeIndcode: null,
       dataList: [],
       dataListDft: [],
+      stockDataList: [],
+      stockDataListDft: [],
       myVar: null,
       myVar1: null,
       rewardShadow: false,
@@ -553,6 +873,7 @@ export default {
       showGSZ: false,
       fundList: ["001618"],
       fundListM: [],
+      stockListM: [],
       sortType: {
         gszzl: "none",
         amount: "none",
@@ -560,14 +881,27 @@ export default {
         costGains: "none",
         costGainsRate: "none",
       },
+      stockSortType: {
+        latestPriceValue: "none",
+        amount: "none",
+        gains: "none",
+        costGains: "none",
+        costGainsRate: "none",
+        gszzl: "none",
+      },
       sortTypeObj: {
         name: null,
         value: null,
+      },
+      stockSortTypeObj: {
+        name: null,
+        type: null,
       },
       searchOptions: [],
       value: [],
       list: [],
       loading: false,
+      activeHoldingsTab: "home",
       dragging: null,
       showAddSeciInput: false,
       seciList: ["1.000001", "1.000300", "0.399001", "0.399006"],
@@ -654,30 +988,59 @@ export default {
     this.init();
   },
   computed: {
+    allHoldingList() {
+      return [...this.dataList, ...this.stockDataList];
+    },
+    freeDataList() {
+      return this.dataList.filter(item => item.accountType === '财务自由账户');
+    },
+    safeDataList() {
+      return this.dataList.filter(item => item.accountType === '财务安全账户');
+    },
+    freeAmount() {
+      return this.sumAmount(this.freeDataList);
+    },
+    safeAmount() {
+      return this.sumAmount(this.safeDataList);
+    },
+    freeGains() {
+      return this.sumGains(this.freeDataList);
+    },
+    safeGains() {
+      return this.sumGains(this.safeDataList);
+    },
+    freeCostGains() {
+      return this.sumCostGains(this.freeDataList);
+    },
+    safeCostGains() {
+      return this.sumCostGains(this.safeDataList);
+    },
+    fundAmount() {
+      return this.sumAmount(this.dataList);
+    },
+    stockAmount() {
+      return this.sumAmount(this.stockDataList);
+    },
+    allAmount() {
+      return this.sumAmount(this.allHoldingList);
+    },
+    fundGains() {
+      return this.sumGains(this.dataList);
+    },
+    stockGains() {
+      return this.sumGains(this.stockDataList);
+    },
     allGains() {
-      let allGains = 0;
-      let allNum = 0;
-      this.dataList.forEach((val) => {
-        allGains += parseFloat(val.gains);
-        allNum += parseFloat(val.amount);
-      });
-      allGains = allGains.toFixed(2);
-      let allGainsRate = ((allGains * 100) / allNum).toFixed(2);
-      return [allGains, allGainsRate];
+      return this.sumGains(this.allHoldingList);
+    },
+    fundCostGains() {
+      return this.sumCostGains(this.dataList);
+    },
+    stockCostGains() {
+      return this.sumCostGains(this.stockDataList);
     },
     allCostGains() {
-      let allCostGains = 0;
-      let allNum = 0;
-      this.dataList.forEach((val) => {
-        allCostGains += parseFloat(val.costGains);
-        allNum += parseFloat(val.amount);
-      });
-      allCostGains = allCostGains.toFixed(2);
-      let allCostGainsRate = (
-        (allCostGains * 100) /
-        (allNum - allCostGains)
-      ).toFixed(2);
-      return [allCostGains, allCostGainsRate];
+      return this.sumCostGains(this.allHoldingList);
     },
     containerClass() {
       let className = "";
@@ -696,6 +1059,9 @@ export default {
       } else if (this.isEdit) {
         className += "more-width";
       } else {
+        if (this.activeHoldingsTab === "stock") {
+          className += "stock-more-width ";
+        }
         let tablist = [
           this.showAmount,
           this.showGains,
@@ -723,6 +1089,68 @@ export default {
         return "table-more-height";
       }
     },
+    fundTableColspan() {
+      let total = 4;
+      if (this.showGSZ && !this.isEdit) {
+        total += 1;
+      }
+      if (this.isEdit && (this.showCostRate || this.showCost)) {
+        total += 1;
+      }
+      if (this.showAmount) {
+        total += 1;
+      }
+      if (this.showCost) {
+        total += 1;
+      }
+      if (this.showCostRate) {
+        total += 1;
+      }
+      if (this.showGains) {
+        total += 1;
+      }
+      if (!this.isEdit) {
+        total += 1;
+      }
+      if (this.isEdit && (this.showAmount || this.showGains || this.showCost || this.showCostRate)) {
+        total += 1;
+      }
+      if (this.isEdit && this.BadgeContent == 1) {
+        total += 1;
+      }
+      if (this.isEdit) {
+        total += 1;
+      }
+      return total;
+    },
+    stockTableColspan() {
+      let total = 4;
+      if (this.showCostRate || this.showCost) {
+        total += 1;
+      }
+      if (this.showAmount) {
+        total += 1;
+      }
+      if (this.showCost) {
+        total += 1;
+      }
+      if (this.showCostRate) {
+        total += 1;
+      }
+      if (this.showGains) {
+        total += 1;
+      }
+      if (!this.isEdit) {
+        total += 1;
+      }
+      if (this.isEdit && (this.showAmount || this.showGains || this.showCost || this.showCostRate)) {
+        total += 1;
+      }
+      if (this.isEdit) {
+        total += 1;
+      }
+      return total;
+    },
     drag() {
       if (this.isEdit) {
         return "table-drag";
@@ -738,9 +1166,15 @@ export default {
         clearInterval(this.myVar);
         clearInterval(this.myVar1);
         this.dataList = [...this.dataListDft];
+        this.stockDataList = [...this.stockDataListDft];
         for (const key in this.sortType) {
           if (this.sortType.hasOwnProperty(key)) {
             this.sortType[key] = "none";
+          }
+        }
+        for (const key in this.stockSortType) {
+          if (this.stockSortType.hasOwnProperty(key)) {
+            this.stockSortType[key] = "none";
           }
         }
       } else {
@@ -749,6 +1183,207 @@ export default {
     },
   },
   methods: {
+    sumAmount(list) {
+      let totalAmount = 0;
+      list.forEach((val) => {
+        totalAmount += parseFloat(val.amount || 0);
+      });
+      return totalAmount.toFixed(2);
+    },
+    sumGains(list) {
+      let allGains = 0;
+      let allNum = 0;
+      list.forEach((val) => {
+        allGains += parseFloat(val.gains || 0);
+        allNum += parseFloat(val.amount || 0);
+      });
+      allGains = allGains.toFixed(2);
+      let allGainsRate = allNum ? ((allGains * 100) / allNum).toFixed(2) : NaN;
+      return [allGains, allGainsRate];
+    },
+    sumCostGains(list) {
+      let allCostGains = 0;
+      let allNum = 0;
+      list.forEach((val) => {
+        allCostGains += parseFloat(val.costGains || 0);
+        allNum += parseFloat(val.amount || 0);
+      });
+      allCostGains = allCostGains.toFixed(2);
+      const denominator = allNum - allCostGains;
+      let allCostGainsRate = denominator ? ((allCostGains * 100) / denominator).toFixed(2) : NaN;
+      return [allCostGains, allCostGainsRate];
+    },
+    toNullableNumber(value) {
+      if (value === null || value === undefined || value === "") {
+        return null;
+      }
+
+      const numberValue = Number(value);
+      return Number.isNaN(numberValue) ? null : numberValue;
+    },
+    parseFundEstimateResponse(payload) {
+      if (!payload || typeof payload !== "string") {
+        return null;
+      }
+
+      const matched = payload.match(/^jsonpgz\((.*)\);?$/);
+      if (!matched || !matched[1]) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(matched[1]);
+      } catch (error) {
+        return null;
+      }
+    },
+    fetchFundEstimate(code) {
+      return this.$axios
+        .get(`https://fundgz.1234567.com.cn/js/${code}.js`, {
+          params: {
+            rt: Date.now(),
+          },
+          responseType: "text",
+          transformResponse: [(value) => value],
+        })
+        .then((res) => this.parseFundEstimateResponse(res.data))
+        .catch(() => null);
+    },
+    applyFundEstimate(baseData, estimateData) {
+      if (!estimateData) {
+        return baseData;
+      }
+
+      const estimatedNav = this.toNullableNumber(estimateData.gsz);
+      const estimatedRate = this.toNullableNumber(estimateData.gszzl);
+
+      if (estimatedNav === null) {
+        return baseData;
+      }
+
+      return {
+        ...baseData,
+        gsz: estimatedNav,
+        gszzl: estimatedRate === null ? baseData.gszzl : estimatedRate,
+        gztime: estimateData.gztime || baseData.gztime,
+        hasReplace: false,
+      };
+    },
+    resolveStockSecid(rawCode, rawMarket) {
+      if (rawCode === null || rawCode === undefined || rawCode === "") {
+        return null;
+      }
+
+      const codeText = String(rawCode).trim().toUpperCase();
+      if (/^[01]\.\d{6}$/.test(codeText)) {
+        const [market, code] = codeText.split(".");
+        return { secid: codeText, code, market };
+      }
+
+      const prefixMatched = codeText.match(/^(SH|SZ)(\d{6})$/);
+      if (prefixMatched) {
+        const market = prefixMatched[1] === "SH" ? "1" : "0";
+        return { secid: `${market}.${prefixMatched[2]}`, code: prefixMatched[2], market };
+      }
+
+      const suffixMatched = codeText.match(/^(\d{6})\.(SH|SZ)$/);
+      if (suffixMatched) {
+        const market = suffixMatched[2] === "SH" ? "1" : "0";
+        return { secid: `${market}.${suffixMatched[1]}`, code: suffixMatched[1], market };
+      }
+
+      const digitMatched = codeText.match(/\d{6}/);
+      if (!digitMatched) {
+        return null;
+      }
+
+      const code = digitMatched[0];
+      const marketText = rawMarket === null || rawMarket === undefined ? "" : String(rawMarket).trim().toLowerCase();
+      let market = null;
+      if (["1", "sh", "sha", "shanghai", "沪", "沪市"].includes(marketText)) {
+        market = "1";
+      } else if (["0", "sz", "sza", "shenzhen", "深", "深市"].includes(marketText)) {
+        market = "0";
+      } else if (/^(5|6|9|11|13)/.test(code)) {
+        market = "1";
+      } else {
+        market = "0";
+      }
+
+      return { secid: `${market}.${code}`, code, market };
+    },
+    normalizeStockItem(item) {
+      const source = typeof item === "object" && item !== null ? item : { code: item };
+      const normalizedCode = this.resolveStockSecid(
+        source.secid || source.code || source.stockCode || source.symbol,
+        source.market || source.exchange || source.mkt
+      );
+
+      if (!normalizedCode) {
+        return null;
+      }
+
+      return {
+        code: normalizedCode.code,
+        secid: normalizedCode.secid,
+        market: normalizedCode.market,
+        name: source.name || source.stockName || "",
+        num: this.toNullableNumber(source.num ?? source.quantity ?? source.shares) || 0,
+        cost: this.toNullableNumber(
+          source.cost ?? source.costPrice ?? source.avgCost ?? source.price
+        ) || 0,
+      };
+    },
+    formatStockPrice(value) {
+      const numberValue = this.toNullableNumber(value);
+      if (numberValue === null) {
+        return "--";
+      }
+
+      return numberValue.toFixed(2);
+    },
+    formatStockUpdateTime(timestamp) {
+      if (!timestamp) {
+        return "--";
+      }
+
+      const timeValue = Number(timestamp);
+      if (Number.isNaN(timeValue)) {
+        return String(timestamp);
+      }
+
+      const date = new Date(timeValue * 1000);
+      if (Number.isNaN(date.getTime())) {
+        return "--";
+      }
+
+      const month = `${date.getMonth() + 1}`.padStart(2, "0");
+      const day = `${date.getDate()}`.padStart(2, "0");
+      const hour = `${date.getHours()}`.padStart(2, "0");
+      const minute = `${date.getMinutes()}`.padStart(2, "0");
+      return `${month}-${day} ${hour}:${minute}`;
+    },
+    calculateStockDailyGain(latestPrice, prevClose, num) {
+      if (latestPrice === null || prevClose === null) {
+        return 0;
+      }
+
+      return ((latestPrice - prevClose) * num).toFixed(2);
+    },
+    calculateStockCostGain(latestPrice, cost, num) {
+      if (cost === null || cost === undefined || cost === "") {
+        return 0;
+      }
+
+      return ((latestPrice - cost) * num).toFixed(2);
+    },
+    calculateStockCostGainRate(latestPrice, cost) {
+      if (!cost) {
+        return 0;
+      }
+
+      return (((latestPrice - cost) / cost) * 100).toFixed(2);
+    },
     refresh() {
       this.init();
       this.isRefresh = true;
@@ -799,6 +1434,8 @@ export default {
           "opacityValue",
           "sortTypeObj",
           "fundListGroup",
+          "stockSortTypeObj",
+          "stockListM",
         ],
         (res) => {
           this.fundList = res.fundList ? res.fundList : this.fundList;
@@ -821,6 +1458,9 @@ export default {
               fundListM: this.fundListM,
             });
           }
+          this.stockListM = (res.stockListM || [])
+            .map((item) => this.normalizeStockItem(item))
+            .filter(Boolean);
           if (res.userId) {
             this.userId = res.userId;
           } else {
@@ -845,6 +1485,7 @@ export default {
           this.grayscaleValue = res.grayscaleValue ? res.grayscaleValue : 0;
           this.opacityValue = res.opacityValue ? res.opacityValue : 0;
           this.sortTypeObj = res.sortTypeObj ? res.sortTypeObj : {};
+          this.stockSortTypeObj = res.stockSortTypeObj ? res.stockSortTypeObj : {};
 
           if (this.seciList.length > 0) {
             this.loadingInd = true;
@@ -860,6 +1501,7 @@ export default {
           this.isGetStorage = true;
           this.getIndFundData();
           this.getData();
+          this.getStockData();
           this.checkInterval(true);
 
           let ver = res.version ? res.version : "1.0.0";
@@ -888,6 +1530,14 @@ export default {
       this.detailShadow = true;
       this.$refs.fundDetail.init();
     },
+    stockDetail(val) {
+      this.detailShadow = true;
+      this.$refs.indDetail.init({
+        f12: val.stockcode,
+        f13: Number(String(val.secid).split(".")[0]),
+        f14: val.name,
+      });
+    },
     closeCharts() {
       this.detailShadow = false;
     },
@@ -904,12 +1554,14 @@ export default {
           if (!isFirst) {
             this.getIndFundData();
             this.getData();
+            this.getStockData();
           }
           this.myVar = setInterval(() => {
             this.getIndFundData();
           }, 5 * 1000);
           this.myVar1 = setInterval(() => {
             this.getData();
+            this.getStockData();
           }, 60 * 1000);
         } else {
           clearInterval(this.myVar);
@@ -948,11 +1600,12 @@ export default {
     },
 
     option() {
-      if (chrome.runtime.openOptionsPage) {
+      if (chrome.runtime && chrome.runtime.openOptionsPage) {
         chrome.runtime.openOptionsPage();
-      } else {
-        chrome.tabs.create({ url: chrome.runtime.getURL("options/options.html") });
+        return;
       }
+
+      chrome.tabs.create({ url: chrome.runtime.getURL("options/options.html") });
     },
     reward() {
       this.rewardShadow = true;
@@ -985,7 +1638,7 @@ export default {
       if (this.sortType[type] == "none") {
         this.dataList = [...this.dataListDft];
       } else {
-        this.dataList = this.dataList.sort(
+        this.dataList = [...this.dataList].sort(
           this.compare(type, this.sortType[type])
         );
       }
@@ -997,10 +1650,56 @@ export default {
         sortTypeObj: this.sortTypeObj,
       });
     },
+    sortStockList(type) {
+      for (const key in this.stockSortType) {
+        if (this.stockSortType.hasOwnProperty(key) && key != type) {
+          this.stockSortType[key] = "none";
+        }
+      }
+      this.stockSortType[type] =
+        this.stockSortType[type] == "desc"
+          ? "asc"
+          : this.stockSortType[type] == "asc"
+          ? "none"
+          : "desc";
+      if (this.stockSortType[type] == "none") {
+        this.stockDataList = [...this.stockDataListDft];
+      } else {
+        this.stockDataList = [...this.stockDataList].sort(
+          this.compare(type, this.stockSortType[type])
+        );
+      }
+      this.stockSortTypeObj = {
+        name: type,
+        type: this.stockSortType[type],
+      };
+      chrome.storage.sync.set({
+        stockSortTypeObj: this.stockSortTypeObj,
+      });
+    },
     compare(property, type) {
       return function(obj1, obj2) {
-        var val1 = obj1[property];
-        var val2 = obj2[property];
+        const normalizeSortValue = (value) => {
+          if (value === null || value === undefined || value === "") {
+            return Number.NEGATIVE_INFINITY;
+          }
+
+          const numericValue = Number(value);
+          if (!Number.isNaN(numericValue)) {
+            return numericValue;
+          }
+
+          return String(value);
+        };
+
+        const val1 = normalizeSortValue(obj1[property]);
+        const val2 = normalizeSortValue(obj2[property]);
+        if (typeof val1 === "string" || typeof val2 === "string") {
+          if (type == "asc") {
+            return String(val1).localeCompare(String(val2), "zh-Hans-CN");
+          }
+          return String(val2).localeCompare(String(val1), "zh-Hans-CN");
+        }
         if (type == "asc") {
           return val1 - val2;
         } else {
@@ -1060,6 +1759,84 @@ export default {
         this.indFundData = res.data.data.diff;
       });
     },
+    getStockData() {
+      if (!this.stockListM.length) {
+        this.stockDataList = [];
+        this.stockDataListDft = [];
+        return;
+      }
+
+      const stockList = this.stockListM
+        .map((item) => this.normalizeStockItem(item))
+        .filter(Boolean);
+      const secids = stockList.map((item) => item.secid).join(",");
+      if (!secids) {
+        this.stockDataList = [];
+        this.stockDataListDft = [];
+        return;
+      }
+
+      const url =
+        "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f12,f13,f14,f18,f124&secids=" +
+        secids +
+        "&_=" +
+        new Date().getTime();
+
+      this.$axios
+        .get(url)
+        .then((res) => {
+          const quoteList = (res.data.data && res.data.data.diff) || [];
+          const quoteMap = Object.fromEntries(
+            quoteList.map((item) => [`${item.f13}.${item.f12}`, item])
+          );
+          const stockDataList = stockList.map((item) => {
+            const quote = quoteMap[item.secid] || {};
+            const latestPrice = this.toNullableNumber(quote.f2);
+            const prevClose =
+              this.toNullableNumber(quote.f18) ?? latestPrice ?? 0;
+            const displayPrice = latestPrice === null ? prevClose : latestPrice;
+            const changeRate =
+              this.toNullableNumber(quote.f3) ??
+              (prevClose
+                ? (((displayPrice - prevClose) / prevClose) * 100).toFixed(2)
+                : 0);
+            const num = this.toNullableNumber(item.num) || 0;
+            const cost = this.toNullableNumber(item.cost) || 0;
+
+            return {
+              stockcode: item.code,
+              secid: item.secid,
+              name: quote.f14 || item.name || item.code,
+              latestPrice: this.formatStockPrice(displayPrice),
+              latestPriceValue: displayPrice,
+              dwjz: prevClose,
+              gsz: displayPrice,
+              gszzl: Number(changeRate).toFixed(2),
+              gztime: quote.f124 || null,
+              num,
+              cost,
+              amount: this.calculateMoney({ dwjz: displayPrice, num }),
+              gains: this.calculateStockDailyGain(displayPrice, prevClose, num),
+              costGains: this.calculateStockCostGain(displayPrice, cost, num),
+              costGainsRate: this.calculateStockCostGainRate(displayPrice, cost),
+            };
+          });
+
+          this.stockDataListDft = [...stockDataList];
+          if (this.stockSortTypeObj.type && this.stockSortTypeObj.type != "none") {
+            this.stockSortType[this.stockSortTypeObj.name] = this.stockSortTypeObj.type;
+            this.stockDataList = [...stockDataList].sort(
+              this.compare(this.stockSortTypeObj.name, this.stockSortTypeObj.type)
+            );
+          } else {
+            this.stockDataList = [...stockDataList];
+          }
+        })
+        .catch(() => {
+          this.stockDataList = [];
+          this.stockDataListDft = [];
+        });
+    },
     getData(type) {
       let fundlist = this.fundListM.map((val) => val.code).join(",");
       let url =
@@ -1069,26 +1846,46 @@ export default {
         fundlist;
       this.$axios
         .get(url)
-        .then((res) => {
+        .then(async (res) => {
           this.loadingList = false;
-          let data = res.data.Datas;
+          let data = res.data.Datas || [];
           this.dataList = [];
           let dataList = [];
+          let missingEstimateCodes = [];
 
           data.forEach((val) => {
+            const nav = this.toNullableNumber(val.NAV);
+            const estimatedNav = this.toNullableNumber(val.GSZ);
+            const estimatedRate = this.toNullableNumber(val.GSZZL);
+            const actualRate = this.toNullableNumber(val.NAVCHGRT);
+            const hasRealtimeValue =
+              !!val.GZTIME && val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10);
+            const hasDailyRate = actualRate !== null && val.PDATE != "--";
             let data = {
               fundcode: val.FCODE,
               name: val.SHORTNAME,
               jzrq: val.PDATE,
-              dwjz: isNaN(val.NAV) ? null : val.NAV,
-              gsz: isNaN(val.GSZ) ? null : val.GSZ,
-              gszzl: isNaN(val.GSZZL) ? 0 : val.GSZZL,
-              gztime: val.GZTIME,
+              dwjz: nav,
+              gsz: estimatedNav,
+              gszzl: estimatedRate,
+              gztime: val.GZTIME || val.PDATE || "--",
             };
-            if (val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
-              data.gsz = val.NAV;
-              data.gszzl = isNaN(val.NAVCHGRT) ? 0 : val.NAVCHGRT;
+            if (hasRealtimeValue) {
+              data.gsz = nav;
+              data.gszzl = actualRate;
               data.hasReplace = true;
+            } else if (data.gsz === null && hasDailyRate) {
+              data.gsz = nav;
+              data.gszzl = actualRate;
+              data.hasReplace = true;
+            }
+
+            if (estimatedNav === null) {
+              missingEstimateCodes.push(data.fundcode);
+            }
+
+            if (data.gszzl === null) {
+              data.gszzl = 0;
             }
 
             let slt = this.fundListM.filter(
@@ -1096,6 +1893,7 @@ export default {
             );
             data.num = slt[0].num;
             data.cost = slt[0].cost;
+            data.accountType = slt[0].accountType || '';
             data.amount = this.calculateMoney(data);
             data.gains = this.calculate(data, data.hasReplace);
             data.costGains = this.calculateCost(data);
@@ -1114,11 +1912,29 @@ export default {
 
             dataList.push(data);
           });
+
+          if (missingEstimateCodes.length) {
+            const estimateEntries = await Promise.all(
+              missingEstimateCodes.map(async (code) => [
+                code,
+                await this.fetchFundEstimate(code),
+              ])
+            );
+            const estimateMap = Object.fromEntries(estimateEntries);
+            dataList = dataList.map((item) =>
+              this.applyFundEstimate(item, estimateMap[item.fundcode])
+            );
+            dataList = dataList.map((item) => ({
+              ...item,
+              gains: this.calculate(item, item.hasReplace),
+            }));
+          }
+
           if (this.showBadge == 1) {
             if (this.BadgeContent == 2) {
               chrome.runtime.sendMessage({
                 type: "refreshBadgeAllGains",
-                data: data,
+                data: dataList,
               });
             }
           }
@@ -1128,7 +1944,7 @@ export default {
             this.dataList = dataList;
           } else if (this.sortTypeObj.type != "none") {
             this.sortType[this.sortTypeObj.name] = this.sortTypeObj.type;
-            this.dataList = dataList.sort(
+            this.dataList = [...dataList].sort(
               this.compare(this.sortTypeObj.name, this.sortTypeObj.type)
             );
           } else {
@@ -1136,6 +1952,17 @@ export default {
           }
         })
         .catch((error) => {});
+    },
+    formatUpdateTime(item) {
+      if (!item || !item.gztime || item.gztime === "--") {
+        return "--";
+      }
+
+      if (item.hasReplace) {
+        return item.gztime.length >= 10 ? item.gztime.substr(5, 5) : item.gztime;
+      }
+
+      return item.gztime.length > 10 ? item.gztime.substr(10) : item.gztime;
     },
     changeNum(item, ind) {
       debounce(() => {
@@ -1175,7 +2002,50 @@ export default {
         );
       });
     },
+    changeStockNum(item, ind) {
+      debounce(() => {
+        for (let stock of this.stockListM) {
+          if (stock.code == item.stockcode) {
+            stock.num = item.num;
+          }
+        }
+
+        chrome.storage.sync.set(
+          {
+            stockListM: this.stockListM,
+          },
+          () => {
+            item.amount = this.calculateMoney({ dwjz: item.gsz, num: item.num });
+            item.gains = this.calculateStockDailyGain(item.gsz, item.dwjz, item.num);
+            item.costGains = this.calculateStockCostGain(item.gsz, item.cost, item.num);
+            item.costGainsRate = this.calculateStockCostGainRate(item.gsz, item.cost);
+          }
+        );
+      });
+    },
+    changeStockCost(item, ind) {
+      debounce(() => {
+        for (let stock of this.stockListM) {
+          if (stock.code == item.stockcode) {
+            stock.cost = item.cost;
+          }
+        }
+
+        chrome.storage.sync.set(
+          {
+            stockListM: this.stockListM,
+          },
+          () => {
+            item.costGains = this.calculateStockCostGain(item.gsz, item.cost, item.num);
+            item.costGainsRate = this.calculateStockCostGainRate(item.gsz, item.cost);
+          }
+        );
+      });
+    },
     calculateMoney(val) {
+      if (val.dwjz === null || val.dwjz === undefined) {
+        return 0;
+      }
       let sum = (val.dwjz * val.num).toFixed(2);
       return sum;
     },
@@ -1185,7 +2055,7 @@ export default {
       if (hasReplace) {
         sum = ((val.dwjz - val.dwjz / (1 + val.gszzl * 0.01)) * num).toFixed(2);
       } else {
-        if (val.gsz) {
+        if (val.gsz != null) {
           sum = ((val.gsz - val.dwjz) * num).toFixed(2);
         }
       }
@@ -1306,6 +2176,25 @@ export default {
         }
       );
     },
+    dltStock(id) {
+      this.stockListM = this.stockListM.filter(function(ele) {
+        return ele.code != id;
+      });
+
+      chrome.storage.sync.set(
+        {
+          stockListM: this.stockListM,
+        },
+        () => {
+          this.stockDataList = this.stockDataList.filter(function(ele) {
+            return ele.stockcode != id;
+          });
+          this.stockDataListDft = this.stockDataListDft.filter(function(ele) {
+            return ele.stockcode != id;
+          });
+        }
+      );
+    },
     handleDragStart(e, item) {
       this.dragging = item;
     },
@@ -1389,22 +2278,40 @@ export default {
 
 <style lang="scss" scoped>
 .container {
-  min-width: 400px;
-  min-height: 150px;
+  --sun-surface: rgba(255, 255, 255, 0.86);
+  --sun-surface-strong: rgba(255, 252, 246, 0.96);
+  --sun-border: rgba(226, 198, 146, 0.42);
+  --sun-shadow: 0 18px 40px rgba(201, 157, 77, 0.16);
+  --sun-shadow-soft: 0 10px 24px rgba(201, 157, 77, 0.12);
+  --sun-text: #4f4334;
+  --sun-muted: #8d7a60;
+  min-width: 0;
+  width: 100%;
+  min-height: 680px;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 10px 7px;
+  padding: 16px 14px 18px;
   box-sizing: border-box;
   position: relative;
   font-size: 12px;
   font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  color: var(--sun-text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 213, 111, 0.28), transparent 24%),
+    radial-gradient(circle at top right, rgba(130, 208, 255, 0.22), transparent 28%),
+    linear-gradient(180deg, #fffdf8 0%, #fff8ee 52%, #fff5ea 100%);
+  border: 1px solid rgba(232, 211, 177, 0.78);
+  border-radius: 24px;
+  box-shadow: 0 22px 48px rgba(168, 131, 58, 0.18);
 }
 
 .refresh {
   position: absolute;
-  right: 10px;
+  right: 16px;
   width: 18px;
-  bottom: 12px;
+  bottom: 16px;
+  z-index: 6;
 
   cursor: pointer;
   i {
@@ -1412,6 +2319,33 @@ export default {
     font-size: 18px;
     font-weight: bold;
   }
+}
+
+.holdings-tabs-wrap {
+  margin-top: 16px;
+  min-height: 420px;
+  min-width: 0;
+  padding: 12px 14px 16px;
+  border-radius: 22px;
+  border: 1px solid var(--sun-border);
+  background: var(--sun-surface);
+  box-shadow: var(--sun-shadow-soft);
+  backdrop-filter: blur(10px);
+}
+
+.page-tabs {
+  min-height: 620px;
+  min-width: 0;
+}
+
+.home-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stock-table-row {
+  min-height: 420px;
 }
 
 .refresh.isRefresh {
@@ -1428,11 +2362,15 @@ export default {
 }
 
 .more-height {
-  min-height: 450px;
+  min-height: 720px;
 }
 
 .more-width {
-  min-width: 785px;
+  min-width: 0;
+}
+
+.stock-more-width {
+  min-width: 0;
 }
 
 .changelog-container {
@@ -1441,7 +2379,7 @@ export default {
 }
 
 .table-more-height {
-  min-height: 160px;
+  min-height: 220px;
 }
 .table-drag {
   cursor: move;
@@ -1449,25 +2387,34 @@ export default {
 
 .container {
   &.num-width-1 {
-    min-width: 420px;
+    min-width: 0;
   }
   &.num-width-2 {
-    min-width: 480px;
+    min-width: 0;
   }
   &.num-width-3 {
-    min-width: 540px;
+    min-width: 0;
   }
   &.num-width-4 {
-    min-width: 610px;
+    min-width: 0;
   }
   &.num-width-5 {
-    min-width: 680px;
+    min-width: 0;
   }
 }
 
 .table-row {
-  max-height: 425px;
+  min-height: 420px;
+  max-height: 520px;
+  position: relative;
   overflow-y: auto;
+  padding-top: 6px;
+}
+
+.empty-row {
+  text-align: center;
+  color: #999;
+  padding: 16px 8px;
 }
 
 .hasReplace {
@@ -1487,8 +2434,13 @@ export default {
 table {
   margin: 0 auto;
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: right;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--sun-surface-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 .align-left {
   text-align: left;
@@ -1499,11 +2451,25 @@ table {
 }
 
 table th {
-  padding: 8px 6px;
+  padding: 12px 10px;
+  white-space: nowrap;
+  color: #6c5a44;
+  font-weight: 700;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff1dc 100%);
+  box-shadow: 0 1px 0 rgba(223, 198, 162, 0.95);
 }
 
 table td {
-  padding: 6px 6px 5px;
+  padding: 10px 10px 9px;
+  white-space: nowrap;
+  color: var(--sun-text);
+  border-bottom: 1px solid rgba(244, 234, 218, 0.95);
 }
 
 .up {
@@ -1517,21 +2483,33 @@ table td {
 }
 
 tbody tr:hover {
-  background: #f5fafe;
+  background: linear-gradient(90deg, rgba(255, 244, 220, 0.74), rgba(255, 251, 243, 0.96));
+}
+
+tbody tr:last-child td,
+tbody tr:last-child th {
+  border-bottom: none;
 }
 
 .btn {
   display: inline-block;
   line-height: 1;
   cursor: pointer;
-  background: #fff;
-  padding: 5px 6px;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 12px;
   font-size: 12px;
-  color: #000000;
-  margin: 0 3px;
+  color: var(--sun-text);
+  margin: 0 4px;
   outline: none;
-  border: 1px solid #dcdfe6;
+  border: 1px solid rgba(225, 202, 164, 0.84);
+  box-shadow: 0 6px 14px rgba(201, 157, 77, 0.1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(201, 157, 77, 0.14);
 }
 
 .btn.edit {
@@ -1551,12 +2529,21 @@ tbody tr:hover {
 .btn-up {
   color: #f56c6c;
   border-color: #f56c6c;
+  background: linear-gradient(180deg, #fff9f9 0%, #ffe8e8 100%);
   font-weight: bold;
 }
 
 .btn-down {
   color: #4eb61b;
   border-color: #4eb61b;
+  background: linear-gradient(180deg, #fbfff7 0%, #effbdd 100%);
+  font-weight: bold;
+}
+
+.btn-total-amount {
+  color: #c75b5b;
+  border-color: #f0b3b3;
+  background-color: #fde9e9;
   font-weight: bold;
 }
 
@@ -1570,6 +2557,147 @@ tbody tr:hover {
   text-align: center;
   margin-top: 10px;
 }
+
+.summary-panel {
+  margin: 10px 0 4px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid var(--sun-border);
+  background: var(--sun-surface);
+  box-shadow: var(--sun-shadow);
+  backdrop-filter: blur(10px);
+}
+
+.summary-row {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.summary-row:first-child {
+  margin-top: 0;
+}
+
+.summary-row-home {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tab-summary-panel {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+}
+
+.tab-summary-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summary-row .btn {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.summary-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(225, 202, 164, 0.84);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 14px rgba(201, 157, 77, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  text-align: left;
+}
+
+.summary-card-soft {
+  border-style: dashed;
+}
+
+.summary-card-green {
+  border-color: rgba(92, 180, 46, 0.88);
+  background: linear-gradient(180deg, rgba(248, 255, 242, 0.96) 0%, rgba(238, 251, 221, 0.94) 100%);
+  color: #43a61d;
+}
+
+.summary-card-red {
+  border-color: rgba(245, 108, 108, 0.72);
+  background: linear-gradient(180deg, rgba(255, 249, 249, 0.96) 0%, rgba(255, 236, 236, 0.94) 100%);
+  color: #de6d6d;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.summary-value {
+  font-size: 15px;
+  line-height: 1.1;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.summary-meta {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.action-row .btn {
+  margin: 0;
+  min-width: 86px;
+  border-radius: 999px;
+  padding: 9px 14px;
+}
+
+.market-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.market-overview .tab-col {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 12px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--sun-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 248, 235, 0.9) 100%);
+  box-shadow: var(--sun-shadow-soft);
+}
+
+.market-overview .tab-col h5 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6d5a43;
+}
+
+.market-overview .tab-col p {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 700;
+}
 .gear-input-row {
   display: flex;
   justify-content: center;
@@ -1582,6 +2710,83 @@ tbody tr:hover {
     display: inline-block;
     width: 20%;
   }
+}
+
+::v-deep .el-tabs__header {
+  margin: 0 0 14px;
+}
+
+::v-deep .page-tabs > .el-tabs__header {
+  background: rgba(255, 249, 239, 0.9);
+  border: 1px solid rgba(232, 210, 179, 0.72);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  padding: 6px;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__nav-wrap::after {
+  display: none;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__nav {
+  display: flex;
+  gap: 8px;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__item {
+  width: auto;
+  min-width: 120px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: 14px;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__active-bar {
+  height: 3px;
+  width: auto;
+  border-radius: 999px;
+}
+
+::v-deep .page-tabs > .el-tabs__content {
+  overflow: visible;
+  min-width: 0;
+}
+
+::v-deep .el-tabs__item {
+  height: 34px;
+  line-height: 34px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #8a7457;
+}
+
+::v-deep .el-tabs__item.is-active {
+  color: #d08c1f;
+}
+
+::v-deep .el-tabs__active-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f6bf53 0%, #ee9f55 100%);
+}
+
+::v-deep .el-tabs__nav-wrap::after {
+  background-color: rgba(232, 210, 179, 0.9);
+}
+
+::v-deep .el-tabs__content {
+  min-height: 420px;
+}
+
+.btn-subtotal {
+  border-style: dashed;
+  color: #c75b5b;
+  border-color: #f0b3b3;
+  background-color: #fde9e9;
+  font-weight: bold;
 }
 
 .tab-col {
@@ -1636,13 +2841,13 @@ tbody tr:hover {
 .tips {
   font-size: 12px;
   margin: 0;
-  color: #aaaaaa;
+  color: var(--sun-muted);
   line-height: 1.4;
-  padding: 5px 15px;
+  padding: 6px 15px;
 }
 
 .fundName {
-  max-width: 150px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1651,14 +2856,18 @@ tbody tr:hover {
 }
 
 .fundName-noclick {
-  max-width: 150px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fundName:hover {
-  color: #409eff;
+  color: #d08c1f;
+}
+
+.stockNameCell {
+  max-width: 300px;
 }
 
 .down-arrow {
@@ -1706,19 +2915,23 @@ tbody tr:hover {
   min-width: 450px;
   font-size: 14px;
   &.num-width-1 {
-    min-width: 500px;
+    min-width: 0;
   }
   &.num-width-2 {
-    min-width: 580px;
+    min-width: 0;
   }
   &.num-width-3 {
-    min-width: 630px;
+    min-width: 0;
   }
   &.num-width-4 {
-    min-width: 690px;
+    min-width: 0;
   }
   &.num-width-5 {
-    min-width: 750px;
+    min-width: 0;
+  }
+
+  &.stock-more-width {
+    min-width: 0;
   }
 
   .btn,
@@ -1733,7 +2946,7 @@ tbody tr:hover {
 }
 
 .detail-container {
-  min-height: 450px;
+  min-height: 720px;
   min-width: 610px;
 }
 
@@ -1751,6 +2964,41 @@ tbody tr:hover {
 .container.darkMode {
   color: rgba($color: #ffffff, $alpha: 0.6);
   background-color: #121212;
+  background-image: none;
+  border-color: rgba($color: #ffffff, $alpha: 0.08);
+  box-shadow: none;
+  thead th {
+    background-color: #1e1e1e;
+    background-image: none;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: rgba($color: #ffffff, $alpha: 0.5);
+  }
+  .summary-panel {
+    background: rgba($color: #ffffff, $alpha: 0.06);
+    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+    box-shadow: none;
+  }
+  .summary-card {
+    background: rgba($color: #ffffff, $alpha: 0.08);
+    border: 1px solid rgba($color: #ffffff, $alpha: 0.1);
+    box-shadow: none;
+  }
+  .summary-card-green {
+    color: #79d85f;
+  }
+  .summary-card-red {
+    color: #ff9b9b;
+  }
+  .holdings-tabs-wrap,
+  .market-overview .tab-col {
+    background: rgba($color: #ffffff, $alpha: 0.06);
+    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+    box-shadow: none;
+  }
+  ::v-deep .page-tabs > .el-tabs__header {
+    background: rgba($color: #ffffff, $alpha: 0.06);
+    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+  }
   .refresh {
     color: rgba($color: #409eff, $alpha: 0.6);
   }
@@ -1763,16 +3011,23 @@ tbody tr:hover {
     border: 1px solid rgba($color: #409eff, $alpha: 0.6);
     background-color: rgba($color: #409eff, $alpha: 0.6);
   }
-  /deep/ .el-input__inner {
+  .action-row .btn {
+    background-color: rgba($color: #ffffff, $alpha: 0.12);
+  }
+  ::v-deep .el-input__inner {
     background-color: rgba($color: #ffffff, $alpha: 0.16);
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
-  /deep/ .el-select__input {
+  ::v-deep .el-select__input {
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ tbody tr:hover {
-    background-color: rgba($color: #ffffff, $alpha: 0.12);
+  ::v-deep tbody tr:hover {
+    background: rgba($color: #ffffff, $alpha: 0.08) !important;
+  }
+
+  tbody tr:hover {
+    background: rgba($color: #ffffff, $alpha: 0.08) !important;
   }
 
   .slt {
@@ -1795,6 +3050,18 @@ tbody tr:hover {
     background-color: rgba($color: #4eb61b, $alpha: 0.6);
   }
 
+  .btn-total-amount {
+    color: rgba($color: #ffd4d4, $alpha: 0.95);
+    border: 1px solid rgba($color: #f0b3b3, $alpha: 0.6);
+    background-color: rgba($color: #c75b5b, $alpha: 0.26);
+  }
+
+  .btn-subtotal {
+    color: rgba($color: #ffd4d4, $alpha: 0.95);
+    border: 1px solid rgba($color: #f0b3b3, $alpha: 0.6);
+    background-color: rgba($color: #c75b5b, $alpha: 0.26);
+  }
+
   .tab-col {
     background-color: rgba($color: #ffffff, $alpha: 0.09);
     border-radius: 5px;
@@ -1805,20 +3072,45 @@ tbody tr:hover {
     border-radius: 5px;
   }
 
+  table td {
+    border-bottom-color: rgba($color: #ffffff, $alpha: 0.06);
+    color: rgba($color: #ffffff, $alpha: 0.6);
+  }
+
+  table th {
+    color: rgba($color: #ffffff, $alpha: 0.5);
+  }
+
+  ::v-deep .el-tabs__item {
+    color: rgba($color: #ffffff, $alpha: 0.5);
+  }
+
+  ::v-deep .el-tabs__item.is-active {
+    color: rgba($color: #ffd37b, $alpha: 0.92);
+  }
+
+  ::v-deep .el-tabs__active-bar {
+    background: linear-gradient(90deg, rgba(255, 209, 112, 0.9), rgba(255, 160, 122, 0.88));
+  }
+
+  ::v-deep .el-tabs__nav-wrap::after {
+    background-color: rgba($color: #ffffff, $alpha: 0.08);
+  }
+
   ::placeholder {
     color: rgba($color: #ffffff, $alpha: 0.38);
   }
 
-  /deep/ .el-select .el-input.is-focus .el-input__inner {
+  ::v-deep .el-select .el-input.is-focus .el-input__inner {
     border-color: rgba($color: #409eff, $alpha: 0.6);
   }
 
-  /deep/ .el-select .el-tag {
+  ::v-deep .el-select .el-tag {
     background-color: rgba($color: #ffffff, $alpha: 0.14);
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ .el-select-dropdown {
+  ::v-deep .el-select-dropdown {
     background-color: #383838;
     border: 1px solid rgba($color: #ffffff, $alpha: 0.38);
     .popper__arrow::after {
@@ -1844,17 +3136,21 @@ tbody tr:hover {
     }
   }
 
-  /deep/ .el-switch__label.is-active {
+  ::v-deep .el-switch__label.is-active {
     color: rgba($color: #409eff, $alpha: 0.87);
   }
-  /deep/ .el-switch__label {
+  ::v-deep .el-switch__label {
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ .hasReplace-tip {
+  ::v-deep .hasReplace-tip {
     color: rgba($color: #ffffff, $alpha: 0.6);
     border: 1px solid rgba($color: #409eff, $alpha: 0.6);
     background-color: rgba($color: #409eff, $alpha: 0.6);
+  }
+
+  .fundName:hover {
+    color: rgba($color: #ffd37b, $alpha: 0.92);
   }
 }
 </style>

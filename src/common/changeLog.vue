@@ -102,7 +102,7 @@ export default {
   mounted() {},
   methods: {
     goGitee() {
-      window.open("http://rabt.gitee.io/funds/docs/dist/index.html#/ChangeLog");
+      window.open("https://rabt.gitee.io/funds/docs/dist/index.html#/ChangeLog");
     },
     getChangelog() {
       this.loading = true;
@@ -147,7 +147,7 @@ export default {
 
 <style lang="scss" scoped>
 .changelog {
-  /deep/ &.el-dialog {
+  &.el-dialog {
     margin-bottom: 15px;
     border-radius: 15px;
   }
@@ -229,26 +229,32 @@ export default {
       border-color: #409eff;
     }
   }
-  /deep/ &.el-dialog--center .el-dialog__header {
-    border-bottom: 1px solid #eee;
-    padding: 15px 20px 10px;
-  }
-  /deep/ &.el-dialog--center .el-dialog__footer {
-    border-top: 1px solid #eee;
-    padding: 10px 20px 10px;
-  }
-  /deep/ &.el-dialog--center .el-dialog__body {
-    padding: 10px 12px;
+  &.el-dialog--center {
+    ::v-deep .el-dialog__header {
+      border-bottom: 1px solid #eee;
+      padding: 15px 20px 10px;
+    }
+
+    ::v-deep .el-dialog__footer {
+      border-top: 1px solid #eee;
+      padding: 10px 20px 10px;
+    }
+
+    ::v-deep .el-dialog__body {
+      padding: 10px 12px;
+    }
   }
 }
 
 .changelog.darkMode {
-  /deep/ &.el-dialog {
+  &.el-dialog {
     background-color: #373737;
-    .el-dialog__header .el-dialog__title {
+
+    ::v-deep .el-dialog__header .el-dialog__title {
       color: rgba($color: #ffffff, $alpha: 0.6);
     }
-    .el-dialog__body {
+
+    ::v-deep .el-dialog__body {
       color: rgba($color: #ffffff, $alpha: 0.6);
     }
   }

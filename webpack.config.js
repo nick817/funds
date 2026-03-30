@@ -2,7 +2,6 @@ const webpack = require('webpack');
 const ejs = require('ejs');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const ExtensionReloader = require('webpack-extension-reloader');
 const {
   VueLoaderPlugin
 } = require('vue-loader');
@@ -12,6 +11,7 @@ const {
 
 const config = {
   mode: process.env.NODE_ENV,
+  devtool: false,
   context: __dirname + '/src',
   devtool: process.env.NODE_ENV === 'development' ? 'cheap-source-map' : false,
   entry: {
@@ -73,7 +73,7 @@ const config = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      global: 'self',
+      global: 'globalThis',
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
@@ -114,14 +114,6 @@ if (config.mode === 'production') {
       'process.env': {
         NODE_ENV: '"production"',
       },
-    }),
-  ]);
-}
-
-if (process.env.HMR === 'true') {
-  config.plugins = (config.plugins || []).concat([
-    new ExtensionReloader({
-      manifest: __dirname + '/src/manifest.json',
     }),
   ]);
 }
