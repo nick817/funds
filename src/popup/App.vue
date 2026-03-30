@@ -128,48 +128,107 @@
                 </div>
               </div>
               <div class="summary-panel summary-dashboard" v-if="showCost || showGains || showAmount">
+                <!-- 持仓总额（顶层） -->
                 <div class="summary-row summary-row-home">
-                  <div v-if="showAmount && dataList.length" class="summary-card summary-card-soft summary-card-red">
-                    <span class="summary-label">基金持仓</span>
-                    <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                  </div>
-                  <div v-if="showGains && dataList.length" class="summary-card summary-card-green">
-                    <span class="summary-label">基金估算</span>
-                    <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
-                  </div>
-                  <div v-if="showCost && dataList.length" class="summary-card summary-card-red">
-                    <span class="summary-label">基金持有</span>
-                    <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
-                  </div>
-                  <div v-if="showAmount && stockDataList.length" class="summary-card summary-card-soft summary-card-red">
-                    <span class="summary-label">股票持仓</span>
-                    <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                  </div>
-                  <div v-if="showGains && stockDataList.length" class="summary-card summary-card-green">
-                    <span class="summary-label">股票当日</span>
-                    <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
-                  </div>
-                  <div v-if="showCost && stockDataList.length" class="summary-card summary-card-red">
-                    <span class="summary-label">股票持有</span>
-                    <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
-                  </div>
-                  <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                  <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                     <span class="summary-label">持仓总额</span>
                     <strong class="summary-value">{{ parseFloat(allAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   </div>
-                  <div v-if="showGains" class="summary-card summary-card-green">
+                  <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(allGains[0])]">
                     <span class="summary-label">估算金额</span>
                     <strong class="summary-value">{{ parseFloat(allGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                     <span class="summary-meta">{{ isNaN(allGains[1]) ? '' : '（' + allGains[1] + '%）' }}</span>
                   </div>
-                  <div v-if="showCost" class="summary-card summary-card-red">
+                  <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(allCostGains[0])]">
                     <span class="summary-label">持有收益</span>
                     <strong class="summary-value">{{ parseFloat(allCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                     <span class="summary-meta">{{ isNaN(allCostGains[1]) ? '' : '（' + allCostGains[1] + '%）' }}</span>
+                  </div>
+                </div>
+                <!-- 第一层子级：基金、股票 -->
+                <div v-if="dataList.length || stockDataList.length" class="summary-children">
+                  <!-- 基金（第一层子级） -->
+                  <div v-if="dataList.length" class="summary-child-row">
+                    <span class="tree-branch">{{ stockDataList.length ? '├' : '└' }}</span>
+                    <div class="summary-child-content">
+                      <div class="summary-row summary-row-home">
+                        <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
+                          <span class="summary-label">基金持仓</span>
+                          <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                        </div>
+                        <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(fundGains[0])]">
+                          <span class="summary-label">基金估算</span>
+                          <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                          <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
+                        </div>
+                        <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(fundCostGains[0])]">
+                          <span class="summary-label">基金持有</span>
+                          <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                          <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
+                        </div>
+                      </div>
+                      <!-- 第二层子级：财务自由、财务安全 -->
+                      <div v-if="freeDataList.length || safeDataList.length" class="summary-children">
+                        <div v-if="freeDataList.length" class="summary-child-row">
+                          <span class="tree-branch">{{ safeDataList.length ? '├' : '└' }}</span>
+                          <div class="summary-row summary-row-home">
+                            <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red" title="财务自由账户">
+                              <span class="summary-label">财务自由</span>
+                              <strong class="summary-value">{{ parseFloat(freeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                            </div>
+                            <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(freeGains[0])]" title="财务自由账户估算">
+                              <span class="summary-label">自由估算</span>
+                              <strong class="summary-value">{{ parseFloat(freeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                              <span class="summary-meta">{{ isNaN(freeGains[1]) ? '' : '（' + freeGains[1] + '%）' }}</span>
+                            </div>
+                            <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(freeCostGains[0])]" title="财务自由账户持有收益">
+                              <span class="summary-label">自由持有</span>
+                              <strong class="summary-value">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                              <span class="summary-meta">{{ isNaN(freeCostGains[1]) ? '' : '（' + freeCostGains[1] + '%）' }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-if="safeDataList.length" class="summary-child-row">
+                          <span class="tree-branch">└</span>
+                          <div class="summary-row summary-row-home">
+                            <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red" title="财务安全账户">
+                              <span class="summary-label">财务安全</span>
+                              <strong class="summary-value">{{ parseFloat(safeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                            </div>
+                            <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(safeGains[0])]" title="财务安全账户估算">
+                              <span class="summary-label">安全估算</span>
+                              <strong class="summary-value">{{ parseFloat(safeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                              <span class="summary-meta">{{ isNaN(safeGains[1]) ? '' : '（' + safeGains[1] + '%）' }}</span>
+                            </div>
+                            <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(safeCostGains[0])]" title="财务安全账户持有收益">
+                              <span class="summary-label">安全持有</span>
+                              <strong class="summary-value">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                              <span class="summary-meta">{{ isNaN(safeCostGains[1]) ? '' : '（' + safeCostGains[1] + '%）' }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 股票（第一层子级） -->
+                  <div v-if="stockDataList.length" class="summary-child-row">
+                    <span class="tree-branch">└</span>
+                    <div class="summary-row summary-row-home">
+                      <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
+                        <span class="summary-label">股票持仓</span>
+                        <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                      </div>
+                      <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(stockGains[0])]">
+                        <span class="summary-label">股票当日</span>
+                        <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                        <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
+                      </div>
+                      <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(stockCostGains[0])]">
+                        <span class="summary-label">股票持有</span>
+                        <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                        <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -178,16 +237,16 @@
           <el-tab-pane :label="`基金（${dataList.length}）`" name="fund">
             <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
               <div class="summary-row tab-summary-row">
-                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                   <span class="summary-label">基金持仓</span>
                   <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
-                <div v-if="showGains" class="summary-card summary-card-green">
+                <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(fundGains[0])]">
                   <span class="summary-label">基金估算</span>
                   <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
                 </div>
-                <div v-if="showCost" class="summary-card summary-card-red">
+                <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(fundCostGains[0])]">
                   <span class="summary-label">基金持有</span>
                   <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
@@ -360,16 +419,16 @@
           <el-tab-pane :label="`财务自由（${freeDataList.length}）`" name="free">
             <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
               <div class="summary-row tab-summary-row">
-                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                   <span class="summary-label">自由持仓</span>
                   <strong class="summary-value">{{ parseFloat(freeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
-                <div v-if="showGains" class="summary-card summary-card-green">
+                <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(freeGains[0]) ]">
                   <span class="summary-label">自由估算</span>
                   <strong class="summary-value">{{ parseFloat(freeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(freeGains[1]) ? '' : '（' + freeGains[1] + '%）' }}</span>
                 </div>
-                <div v-if="showCost" class="summary-card summary-card-red">
+                <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(freeCostGains[0])]">
                   <span class="summary-label">自由持有</span>
                   <strong class="summary-value">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(freeCostGains[1]) ? '' : '（' + freeCostGains[1] + '%）' }}</span>
@@ -457,16 +516,16 @@
           <el-tab-pane :label="`财务安全（${safeDataList.length}）`" name="safe">
             <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
               <div class="summary-row tab-summary-row">
-                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                   <span class="summary-label">安全持仓</span>
                   <strong class="summary-value">{{ parseFloat(safeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
-                <div v-if="showGains" class="summary-card summary-card-green">
+                <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(safeGains[0])]">
                   <span class="summary-label">安全估算</span>
                   <strong class="summary-value">{{ parseFloat(safeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(safeGains[1]) ? '' : '（' + safeGains[1] + '%）' }}</span>
                 </div>
-                <div v-if="showCost" class="summary-card summary-card-red">
+                <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(safeCostGains[0])]">
                   <span class="summary-label">安全持有</span>
                   <strong class="summary-value">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(safeCostGains[1]) ? '' : '（' + safeCostGains[1] + '%）' }}</span>
@@ -554,16 +613,16 @@
           <el-tab-pane :label="`股票（${stockDataList.length}）`" name="stock">
             <div class="summary-panel tab-summary-panel" v-if="showCost || showGains || showAmount">
               <div class="summary-row tab-summary-row">
-                <div v-if="showAmount" class="summary-card summary-card-soft summary-card-red">
+                <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                   <span class="summary-label">股票持仓</span>
                   <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
-                <div v-if="showGains" class="summary-card summary-card-green">
+                <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(stockGains[0])]">
                   <span class="summary-label">股票当日</span>
                   <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
                 </div>
-                <div v-if="showCost" class="summary-card summary-card-red">
+                <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(stockCostGains[0])]">
                   <span class="summary-label">股票持有</span>
                   <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
@@ -986,6 +1045,13 @@ export default {
       }
     }, 10);
     this.init();
+    // 兜底：如果 storage 回调未执行，3秒后强制显示界面
+    setTimeout(() => {
+      if (!this.isGetStorage) {
+        console.warn("storage callback timeout, forcing isGetStorage=true");
+        this.isGetStorage = true;
+      }
+    }, 3000);
   },
   computed: {
     allHoldingList() {
@@ -1221,6 +1287,15 @@ export default {
       const numberValue = Number(value);
       return Number.isNaN(numberValue) ? null : numberValue;
     },
+    summaryGainCardClass(value) {
+      const numberValue = this.toNullableNumber(value);
+
+      if (numberValue === null || numberValue === 0) {
+        return "summary-card-soft";
+      }
+
+      return numberValue > 0 ? "summary-card-red" : "summary-card-green";
+    },
     parseFundEstimateResponse(payload) {
       if (!payload || typeof payload !== "string") {
         return null;
@@ -1438,54 +1513,61 @@ export default {
           "stockListM",
         ],
         (res) => {
-          this.fundList = res.fundList ? res.fundList : this.fundList;
-          if (res.fundListM && res.fundListM.length) {
-            this.fundListM = res.fundListM;
-          } else if (res.fundListGroup && res.fundListGroup.length) {
-            this.fundListM = flattenFundListGroup(res.fundListGroup);
-            chrome.storage.sync.set({
-              fundListM: this.fundListM,
-            });
-          } else {
-            for (const fund of this.fundList) {
-              let val = {
-                code: fund,
-                num: 0,
-              };
-              this.fundListM.push(val);
+          if (chrome.runtime.lastError) {
+            console.error("storage.sync.get error:", chrome.runtime.lastError);
+          }
+          try {
+            this.fundList = res.fundList ? res.fundList : this.fundList;
+            if (res.fundListM && res.fundListM.length) {
+              this.fundListM = res.fundListM;
+            } else if (res.fundListGroup && res.fundListGroup.length) {
+              this.fundListM = flattenFundListGroup(res.fundListGroup);
+              chrome.storage.sync.set({
+                fundListM: this.fundListM,
+              });
+            } else {
+              for (const fund of this.fundList) {
+                let val = {
+                  code: fund,
+                  num: 0,
+                };
+                this.fundListM.push(val);
+              }
+              chrome.storage.sync.set({
+                fundListM: this.fundListM,
+              });
             }
-            chrome.storage.sync.set({
-              fundListM: this.fundListM,
-            });
+            this.stockListM = (res.stockListM || [])
+              .map((item) => this.normalizeStockItem(item))
+              .filter(Boolean);
+            if (res.userId) {
+              this.userId = res.userId;
+            } else {
+              this.userId = this.getGuid();
+              chrome.storage.sync.set({
+                userId: this.userId,
+              });
+            }
+            this.darkMode = res.darkMode ? res.darkMode : false;
+            this.normalFontSize = res.normalFontSize ? res.normalFontSize : false;
+            this.seciList = res.seciList ? res.seciList : this.seciList;
+            this.showAmount = res.showAmount ? res.showAmount : false;
+            this.showGains = res.showGains ? res.showGains : false;
+            this.RealtimeFundcode = res.RealtimeFundcode;
+            this.RealtimeIndcode = res.RealtimeIndcode;
+            this.isLiveUpdate = res.isLiveUpdate ? res.isLiveUpdate : false;
+            this.showCost = res.showCost ? res.showCost : false;
+            this.showCostRate = res.showCostRate ? res.showCostRate : false;
+            this.showGSZ = res.showGSZ ? res.showGSZ : false;
+            this.BadgeContent = res.BadgeContent ? res.BadgeContent : 1;
+            this.showBadge = res.showBadge ? res.showBadge : 1;
+            this.grayscaleValue = res.grayscaleValue ? res.grayscaleValue : 0;
+            this.opacityValue = res.opacityValue ? res.opacityValue : 0;
+            this.sortTypeObj = res.sortTypeObj ? res.sortTypeObj : {};
+            this.stockSortTypeObj = res.stockSortTypeObj ? res.stockSortTypeObj : {};
+          } catch (e) {
+            console.error("init storage callback error:", e);
           }
-          this.stockListM = (res.stockListM || [])
-            .map((item) => this.normalizeStockItem(item))
-            .filter(Boolean);
-          if (res.userId) {
-            this.userId = res.userId;
-          } else {
-            this.userId = this.getGuid();
-            chrome.storage.sync.set({
-              userId: this.userId,
-            });
-          }
-          this.darkMode = res.darkMode ? res.darkMode : false;
-          this.normalFontSize = res.normalFontSize ? res.normalFontSize : false;
-          this.seciList = res.seciList ? res.seciList : this.seciList;
-          this.showAmount = res.showAmount ? res.showAmount : false;
-          this.showGains = res.showGains ? res.showGains : false;
-          this.RealtimeFundcode = res.RealtimeFundcode;
-          this.RealtimeIndcode = res.RealtimeIndcode;
-          this.isLiveUpdate = res.isLiveUpdate ? res.isLiveUpdate : false;
-          this.showCost = res.showCost ? res.showCost : false;
-          this.showCostRate = res.showCostRate ? res.showCostRate : false;
-          this.showGSZ = res.showGSZ ? res.showGSZ : false;
-          this.BadgeContent = res.BadgeContent ? res.BadgeContent : 1;
-          this.showBadge = res.showBadge ? res.showBadge : 1;
-          this.grayscaleValue = res.grayscaleValue ? res.grayscaleValue : 0;
-          this.opacityValue = res.opacityValue ? res.opacityValue : 0;
-          this.sortTypeObj = res.sortTypeObj ? res.sortTypeObj : {};
-          this.stockSortTypeObj = res.stockSortTypeObj ? res.stockSortTypeObj : {};
 
           if (this.seciList.length > 0) {
             this.loadingInd = true;
@@ -2285,8 +2367,7 @@ export default {
   --sun-shadow-soft: 0 10px 24px rgba(201, 157, 77, 0.12);
   --sun-text: #4f4334;
   --sun-muted: #8d7a60;
-  min-width: 0;
-  width: 100%;
+  min-width: 400px;
   min-height: 680px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -2366,11 +2447,11 @@ export default {
 }
 
 .more-width {
-  min-width: 0;
+  min-width: 785px;
 }
 
 .stock-more-width {
-  min-width: 0;
+  min-width: 785px;
 }
 
 .changelog-container {
@@ -2387,19 +2468,19 @@ export default {
 
 .container {
   &.num-width-1 {
-    min-width: 0;
+    min-width: 420px;
   }
   &.num-width-2 {
-    min-width: 0;
+    min-width: 480px;
   }
   &.num-width-3 {
-    min-width: 0;
+    min-width: 540px;
   }
   &.num-width-4 {
-    min-width: 0;
+    min-width: 610px;
   }
   &.num-width-5 {
-    min-width: 0;
+    min-width: 680px;
   }
 }
 
@@ -2579,6 +2660,61 @@ tbody tr:last-child th {
   margin-top: 0;
 }
 
+.summary-group {
+  margin-top: 8px;
+}
+
+.summary-group:first-child {
+  margin-top: 0;
+}
+
+.summary-group > .summary-row {
+  margin-top: 0;
+}
+
+.summary-children {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.summary-child-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.tree-branch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+  color: rgba(201, 157, 77, 0.55);
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+}
+
+.summary-child-row .summary-row {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.summary-child-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-child-content > .summary-row {
+  margin-top: 0;
+}
+
+.summary-child-content > .summary-children {
+  margin-top: 5px;
+}
+
 .summary-row-home {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -2616,6 +2752,20 @@ tbody tr:last-child th {
   justify-content: center;
   gap: 3px;
   text-align: left;
+}
+
+.summary-card-compact {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 10px;
+  overflow: hidden;
+}
+
+.summary-card-compact .summary-label {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .summary-card-soft {
@@ -2915,23 +3065,23 @@ tbody tr:last-child th {
   min-width: 450px;
   font-size: 14px;
   &.num-width-1 {
-    min-width: 0;
+    min-width: 500px;
   }
   &.num-width-2 {
-    min-width: 0;
+    min-width: 580px;
   }
   &.num-width-3 {
-    min-width: 0;
+    min-width: 630px;
   }
   &.num-width-4 {
-    min-width: 0;
+    min-width: 690px;
   }
   &.num-width-5 {
-    min-width: 0;
+    min-width: 750px;
   }
 
   &.stock-more-width {
-    min-width: 0;
+    min-width: 785px;
   }
 
   .btn,
@@ -3075,6 +3225,14 @@ tbody tr:last-child th {
   table td {
     border-bottom-color: rgba($color: #ffffff, $alpha: 0.06);
     color: rgba($color: #ffffff, $alpha: 0.6);
+  }
+
+  .up {
+    color: #f56c6c;
+  }
+
+  .down {
+    color: #4eb61b;
   }
 
   table th {

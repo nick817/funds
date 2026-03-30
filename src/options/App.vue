@@ -166,8 +166,32 @@
               />
             </a>
           </div>
+          <div style="padding:8px 0 10px">
+            <input
+              class="btn"
+              type="button"
+              value="导出股票列表Excel"
+              :disabled="loadingStockList"
+              @click="getStockData"
+            />
+            <a href="javascript:;" class="uploadFile btn"
+              >导入股票列表Excel
+              <input
+                ref="importStockExcel"
+                type="file"
+                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                @change="importStockExcel"
+              />
+            </a>
+            <input
+              class="btn"
+              type="button"
+              value="股票导入导出文本"
+              @click="openStockConfigBox"
+            />
+          </div>
           <p>
-            tips：插件本身支持跟随浏览器账号自动同步，若想手动同步可使用导入导出功能，同步小程序数据可以选择导入导出文本，Excel导入时不用填写基金名称。
+            tips：插件本身支持跟随浏览器账号自动同步，若想手动同步可使用导入导出功能，同步小程序数据可以选择导入导出文本。基金 Excel 导入时不用填写基金名称；股票支持 Excel 或 JSON 文本导入，文本格式可直接使用 stockListM。
           </p>
         </li>
         <li>
@@ -317,6 +341,7 @@ export default {
   data() {
     return {
       fundListM: null,
+      stockListM: [],
       userId: null,
       configHref: null,
       holiday: null,
@@ -333,6 +358,8 @@ export default {
       changelogShadow: false,
       normalFontSize: false,
       loadingFundList: false,
+      loadingStockList: false,
+      stockDataList: [],
       version,
     };
   },
@@ -348,6 +375,69 @@ export default {
     },
   },
   methods: {
+    resolveStockSecid(rawCode, rawMarket) {
+      if (rawCode === null || rawCode === undefined || rawCode === "") {
+        return null;
+      }
+
+      const codeText = String(rawCode).trim().toUpperCase();
+      if (/^[01]\.\d{6}$/.test(codeText)) {
+        const [market, code] = codeText.split(".");
+        return { secid: codeText, code, market };
+      }
+
+      const prefixMatched = codeText.match(/^(SH|SZ)(\d{6})$/);
+      if (prefixMatched) {
+        const market = prefixMatched[1] === "SH" ? "1" : "0";
+        return { secid: `${market}.${prefixMatched[2]}`, code: prefixMatched[2], market };
+      }
+
+      const suffixMatched = codeText.match(/^(\d{6})\.(SH|SZ)$/);
+      if (suffixMatched) {
+        const market = suffixMatched[2] === "SH" ? "1" : "0";
+        return { secid: `${market}.${suffixMatched[1]}`, code: suffixMatched[1], market };
+      }
+
+      const digitMatched = codeText.match(/\d{6}/);
+      if (!digitMatched) {
+        return null;
+      }
+
+      const code = digitMatched[0];
+      const marketText = rawMarket === null || rawMarket === undefined ? "" : String(rawMarket).trim().toLowerCase();
+      let market = null;
+      if (["1", "sh", "sha", "shanghai", "沪", "沪市"].includes(marketText)) {
+        market = "1";
+      } else if (["0", "sz", "sza", "shenzhen", "深", "深市"].includes(marketText)) {
+        market = "0";
+      } else if (/^(5|6|9|11|13)/.test(code)) {
+        market = "1";
+      } else {
+        market = "0";
+      }
+
+      return { secid: `${market}.${code}`, code, market };
+    },
+    normalizeStockItem(item) {
+      const source = typeof item === "object" && item !== null ? item : { code: item };
+      const normalizedCode = this.resolveStockSecid(
+        source.secid || source.code || source.stockCode || source.symbol,
+        source.market || source.exchange || source.mkt
+      );
+
+      if (!normalizedCode) {
+        return null;
+      }
+
+      return {
+        code: normalizedCode.code,
+        secid: normalizedCode.secid,
+        market: normalizedCode.market,
+        name: source.name || source.stockName || "",
+        num: Number(source.num ?? source.quantity ?? source.shares) || 0,
+        cost: Number(source.cost ?? source.costPrice ?? source.avgCost ?? source.price) || 0,
+      };
+    },
     getFundData() {
       this.loadingFundList = true;
       this.$message({
@@ -441,6 +531,71 @@ export default {
       // 读取文件 成功后执行上面的回调函数
       fileReader.readAsBinaryString(files[0]);
     },
+    getStockData() {
+      this.loadingStockList = true;
+      const stockList = (this.stockListM || [])
+        .map((item) => this.normalizeStockItem(item))
+        .filter(Boolean);
+
+      this.stockDataList = stockList;
+      this.downloadStockData();
+      this.loadingStockList = false;
+    },
+    downloadStockData() {
+      var tHeader = ["股票代码", "市场", "持有数量", "成本价"];
+      var filterVal = ["code", "market", "num", "cost"];
+      var data = this.formatJson(filterVal, this.stockDataList);
+      const { export_json_to_excel } = require("../common/js/vendor/Export2Excel");
+      export_json_to_excel(tHeader, data, "自选基金助手-股票配置");
+    },
+    importStockExcel(e) {
+      var files = e.target.files;
+      let fileReader = new FileReader();
+      fileReader.onload = (event) => {
+        try {
+          const XLSX = require("xlsx");
+          let data = event.target.result;
+          let workbook = XLSX.read(data, {
+            type: "binary",
+          });
+          let excelData = XLSX.utils.sheet_to_json(
+            workbook.Sheets[workbook.SheetNames[0]]
+          );
+          let arr = [];
+          excelData.forEach((item) => {
+            const stockItem = this.normalizeStockItem({
+              code: item["股票代码"] || item["代码"] || item["证券代码"],
+              market: item["市场"] || item["交易所"] || item["market"],
+              num: item["持有数量"] || item["持股数量"] || item["数量"],
+              cost: item["成本价"] || item["持仓成本"] || item["成本"],
+            });
+
+            if (stockItem) {
+              arr.push(stockItem);
+            }
+          });
+
+          chrome.storage.sync.set({ stockListM: arr }, () => {
+            this.initOption();
+            chrome.runtime.sendMessage({ type: "refresh" });
+            this.$message({
+              message: "恭喜,导入股票列表成功！",
+              type: "success",
+              center: true,
+            });
+            this.$refs.importStockExcel.value = null;
+          });
+        } catch (error) {
+          this.$message({
+            message: "股票导入失败！",
+            type: "error",
+            center: true,
+          });
+          return false;
+        }
+      };
+      fileReader.readAsBinaryString(files[0]);
+    },
 
     changelog() {
       this.changelogShadow = true;
@@ -482,6 +637,8 @@ export default {
           "BadgeType",
           "userId",
           "fundListM",
+          "stockListM",
+          "fundListGroup",
         ],
         (res) => {
           if (res.showNum) {
@@ -534,6 +691,9 @@ export default {
           } else {
             this.fundListM = [];
           }
+          this.stockListM = (res.stockListM || [])
+            .map((item) => this.normalizeStockItem(item))
+            .filter(Boolean);
           this.showGSZ = res.showGSZ ? res.showGSZ : false;
           this.showCost = res.showCost ? res.showCost : false;
           this.showCostRate = res.showCostRate ? res.showCostRate : false;
@@ -599,6 +759,9 @@ export default {
     },
     openConfigBox() {
       this.$refs.configBox.init();
+    },
+    openStockConfigBox() {
+      this.$refs.configBox.init("stock");
     },
     getHoliday() {
       this.disabled = true;
