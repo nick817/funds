@@ -165,9 +165,15 @@
                 @change="importExcel"
               />
             </a>
+            <input
+              class="btn"
+              type="button"
+              value="股票导入导出文本"
+              @click="openStockConfigBox"
+            />
           </div>
           <p>
-            tips：插件本身支持跟随浏览器账号自动同步，若想手动同步可使用导入导出功能，同步小程序数据可以选择导入导出文本，Excel导入时不用填写基金名称。
+            tips：插件本身支持跟随浏览器账号自动同步，若想手动同步可使用导入导出功能，同步小程序数据可以选择导入导出文本，Excel导入时不用填写基金名称。股票列表也支持和基金一样的 JSON 文本导入导出，单项至少包含 code，持仓股数用 num，持仓成本价用 cost。
           </p>
         </li>
         <li>
@@ -270,6 +276,13 @@
             :top="40"
           >
           </config-box>
+          <config-box
+            @success="successInput"
+            :darkMode="darkMode"
+            ref="stockConfigBox"
+            :top="40"
+          >
+          </config-box>
         </li>
       </ul>
     </div>
@@ -292,6 +305,7 @@ export default {
   data() {
     return {
       fundListM: null,
+      stockListM: [],
       userId: null,
       configHref: null,
       holiday: null,
@@ -323,6 +337,79 @@ export default {
     },
   },
   methods: {
+    normalizeNumber(value) {
+      if (value === null || value === undefined || value === "") {
+        return 0;
+      }
+
+      const numberValue = Number(value);
+      return Number.isNaN(numberValue) ? 0 : numberValue;
+    },
+    resolveStockSecid(rawCode, rawMarket) {
+      if (rawCode === null || rawCode === undefined || rawCode === "") {
+        return null;
+      }
+
+      const codeText = String(rawCode).trim().toUpperCase();
+      if (/^[01]\.\d{6}$/.test(codeText)) {
+        const [market, code] = codeText.split(".");
+        return { secid: codeText, code, market };
+      }
+
+      const prefixMatched = codeText.match(/^(SH|SZ)(\d{6})$/);
+      if (prefixMatched) {
+        const market = prefixMatched[1] === "SH" ? "1" : "0";
+        return { secid: `${market}.${prefixMatched[2]}`, code: prefixMatched[2], market };
+      }
+
+      const suffixMatched = codeText.match(/^(\d{6})\.(SH|SZ)$/);
+      if (suffixMatched) {
+        const market = suffixMatched[2] === "SH" ? "1" : "0";
+        return { secid: `${market}.${suffixMatched[1]}`, code: suffixMatched[1], market };
+      }
+
+      const digitMatched = codeText.match(/\d{6}/);
+      if (!digitMatched) {
+        return null;
+      }
+
+      const code = digitMatched[0];
+      const marketText = rawMarket === null || rawMarket === undefined ? "" : String(rawMarket).trim().toLowerCase();
+      let market = null;
+      if (["1", "sh", "sha", "shanghai", "沪", "沪市"].includes(marketText)) {
+        market = "1";
+      } else if (["0", "sz", "sza", "shenzhen", "深", "深市"].includes(marketText)) {
+        market = "0";
+      } else if (/^(5|6|9|11|13)/.test(code)) {
+        market = "1";
+      } else {
+        market = "0";
+      }
+
+      return { secid: `${market}.${code}`, code, market };
+    },
+    normalizeStockItem(item) {
+      const source = typeof item === "object" && item !== null ? item : { code: item };
+      const normalizedCode = this.resolveStockSecid(
+        source.secid || source.code || source.stockCode || source.symbol,
+        source.market || source.exchange || source.mkt
+      );
+
+      if (!normalizedCode) {
+        return null;
+      }
+
+      return {
+        code: normalizedCode.code,
+        secid: normalizedCode.secid,
+        market: normalizedCode.market,
+        name: source.name || source.stockName || "",
+        num: this.normalizeNumber(source.num ?? source.quantity ?? source.shares),
+        cost: this.normalizeNumber(
+          source.cost ?? source.costPrice ?? source.avgCost ?? source.price
+        ),
+      };
+    },
     getFundData() {
       this.loadingFundList = true;
       this.$message({
@@ -414,7 +501,6 @@ export default {
       // 读取文件 成功后执行上面的回调函数
       fileReader.readAsBinaryString(files[0]);
     },
-
     changelog() {
       this.changelogShadow = true;
       this.$refs.changelog.init();
@@ -455,6 +541,7 @@ export default {
           "BadgeType",
           "userId",
           "fundListM",
+          "stockListM",
         ],
         (res) => {
           if (res.showNum) {
@@ -498,6 +585,7 @@ export default {
             });
           }
           this.fundListM = res.fundListM ? res.fundListM : [];
+          this.stockListM = res.stockListM ? res.stockListM : [];
           this.showGSZ = res.showGSZ ? res.showGSZ : false;
           this.showCost = res.showCost ? res.showCost : false;
           this.showCostRate = res.showCostRate ? res.showCostRate : false;
@@ -554,6 +642,9 @@ export default {
     },
     openConfigBox() {
       this.$refs.configBox.init();
+    },
+    openStockConfigBox() {
+      this.$refs.stockConfigBox.init({ mode: "stock" });
     },
     getHoliday() {
       this.disabled = true;

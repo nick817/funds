@@ -1,6 +1,7 @@
 <template>
   <div v-if="configShadow" class="shadow">
     <div class="config-box" :style="{ marginTop: top + 'px' }">
+      <div class="box-title">{{ dialogTitle }}</div>
       <div class="tab-row">
         <button
           @click="checked = 'export'"
@@ -19,7 +20,7 @@
         <el-input
           type="textarea"
           :rows="15"
-          placeholder="请输入内容"
+          :placeholder="exportPlaceholder"
           v-model="exportConfigStr"
         >
         </el-input>
@@ -36,14 +37,14 @@
         <el-input
           type="textarea"
           :rows="15"
-          placeholder="请在此输入框粘贴配置文本"
+          :placeholder="importPlaceholder"
           v-model="inputConfigStr"
         >
         </el-input>
         <input
           class="btn success"
           type="button"
-          value="提交配置文本"
+          :value="submitButtonText"
           @click="importInput"
         />
       </div>
@@ -64,11 +65,16 @@ export default {
       type: Number,
       default: 0,
     },
+    darkMode: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       configShadow: false,
       checked: "export",
+      mode: "config",
       textarea: "",
       exportConfigStr: null,
       inputConfigStr: null,
@@ -76,13 +82,109 @@ export default {
   },
   watch: {},
   mounted() {},
+  computed: {
+    dialogTitle() {
+      return this.mode === "stock" ? "股票导入导出文本" : "配置导入导出文本";
+    },
+    exportPlaceholder() {
+      return this.mode === "stock" ? "此处会生成股票列表 JSON 文本" : "此处会生成完整配置 JSON 文本";
+    },
+    importPlaceholder() {
+      return this.mode === "stock"
+        ? "请在此输入框粘贴股票列表 JSON 文本"
+        : "请在此输入框粘贴配置文本";
+    },
+    submitButtonText() {
+      return this.mode === "stock" ? "提交股票文本" : "提交配置文本";
+    },
+  },
   methods: {
-    init() {
+    normalizeStockItem(item) {
+      const source = typeof item === "object" && item !== null ? item : { code: item };
+      const normalizedCode = this.resolveStockSecid(
+        source.secid || source.code || source.stockCode || source.symbol,
+        source.market || source.exchange || source.mkt
+      );
+
+      if (!normalizedCode) {
+        return null;
+      }
+
+      return {
+        code: normalizedCode.code,
+        secid: normalizedCode.secid,
+        market: normalizedCode.market,
+        name: source.name || source.stockName || "",
+        num: this.normalizeNumber(source.num ?? source.quantity ?? source.shares),
+        cost: this.normalizeNumber(
+          source.cost ?? source.costPrice ?? source.avgCost ?? source.price
+        ),
+      };
+    },
+    normalizeNumber(value) {
+      if (value === null || value === undefined || value === "") {
+        return 0;
+      }
+
+      const numberValue = Number(value);
+      return Number.isNaN(numberValue) ? 0 : numberValue;
+    },
+    resolveStockSecid(rawCode, rawMarket) {
+      if (rawCode === null || rawCode === undefined || rawCode === "") {
+        return null;
+      }
+
+      const codeText = String(rawCode).trim().toUpperCase();
+      if (/^[01]\.\d{6}$/.test(codeText)) {
+        const [market, code] = codeText.split(".");
+        return { secid: codeText, code, market };
+      }
+
+      const prefixMatched = codeText.match(/^(SH|SZ)(\d{6})$/);
+      if (prefixMatched) {
+        const market = prefixMatched[1] === "SH" ? "1" : "0";
+        return { secid: `${market}.${prefixMatched[2]}`, code: prefixMatched[2], market };
+      }
+
+      const suffixMatched = codeText.match(/^(\d{6})\.(SH|SZ)$/);
+      if (suffixMatched) {
+        const market = suffixMatched[2] === "SH" ? "1" : "0";
+        return { secid: `${market}.${suffixMatched[1]}`, code: suffixMatched[1], market };
+      }
+
+      const digitMatched = codeText.match(/\d{6}/);
+      if (!digitMatched) {
+        return null;
+      }
+
+      const code = digitMatched[0];
+      const marketText = rawMarket === null || rawMarket === undefined ? "" : String(rawMarket).trim().toLowerCase();
+      let market = null;
+      if (["1", "sh", "sha", "shanghai", "沪", "沪市"].includes(marketText)) {
+        market = "1";
+      } else if (["0", "sz", "sza", "shenzhen", "深", "深市"].includes(marketText)) {
+        market = "0";
+      } else if (/^(5|6|9|11|13)/.test(code)) {
+        market = "1";
+      } else {
+        market = "0";
+      }
+
+      return { secid: `${market}.${code}`, code, market };
+    },
+    init(options = {}) {
       this.configShadow = true;
+      this.checked = "export";
+      this.mode = options.mode || "config";
       this.inputConfigStr = null;
       chrome.storage.sync.get(null, (res) => {
+        if (this.mode === "stock") {
+          this.exportConfigStr = JSON.stringify(res.stockListM || [], null, 2);
+          return;
+        }
+
         delete res.holiday;
-        this.exportConfigStr = JSON.stringify(res);
+        this.exportConfigStr = JSON.stringify(res, null, 2);
       });
     },
     close() {
@@ -102,6 +204,34 @@ export default {
       try {
         if (typeof JSON.parse(this.inputConfigStr) == "object") {
           let config = JSON.parse(this.inputConfigStr);
+
+          if (this.mode === "stock") {
+            const rawList = Array.isArray(config)
+              ? config
+              : config.stockListM || config.stocks || config.stockList;
+            if (!Array.isArray(rawList)) {
+              throw new Error("Invalid stock list");
+            }
+
+            const stockListM = rawList
+              .map((item) => this.normalizeStockItem(item))
+              .filter(Boolean);
+
+            if (!stockListM.length) {
+              throw new Error("Empty stock list");
+            }
+
+            chrome.storage.sync.set({ stockListM }, () => {
+              this.$emit("success", false);
+              this.$message({
+                message: "恭喜,导入股票列表成功！",
+                type: "success",
+                center: true,
+              });
+            });
+
+            return;
+          }
 
           chrome.storage.sync.set(config, (val) => {
             this.$emit("success", false);
@@ -151,6 +281,12 @@ export default {
       margin: 15px 0 5px;
     }
   }
+}
+
+.box-title {
+  padding-top: 18px;
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .config-box button {
