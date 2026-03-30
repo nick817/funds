@@ -88,6 +88,8 @@ Firefox 扩展商店暂已下架 ~~插件已上架火狐 Firefox 扩展商店：
 `npm i`
 安装依赖
 
+推荐使用较新的 Node 版本（例如 Node 18 及以上）。当前工程已兼容新版本 Node，无需额外安装 Python 2 或旧版 node-sass。
+
 调试模式执行
 `npm run watch:dev`
 生成 dist 文件夹，浏览器选择“加载已解压的扩展程序”

@@ -250,7 +250,7 @@
               </td>
               <td v-if="!isEdit">
                 {{
-                  el.hasReplace ? el.gztime.substr(5, 5) : el.gztime.substr(10)
+                  formatUpdateTime(el)
                 }}
                 
               </td>
@@ -417,6 +417,17 @@
     </div>
     <div class="input-row" v-if="showCost || showGains">
       <input
+        v-if="showAmount"
+        class="btn btn-total-amount"
+        type="button"
+        :value="
+          '持仓总额：' +
+            parseFloat(allAmount).toLocaleString('zh', {
+              minimumFractionDigits: 2,
+            })
+        "
+      />
+      <input
         v-if="showGains"
         class="btn"
         :class="allGains[0] >= 0 ? 'btn-up' : 'btn-down'"
@@ -425,7 +436,7 @@
           allGains[0] >= 0 ? 'd=====(￣▽￣*)b 赞一个' : '∑(っ°Д°;)っ 大事不好啦'
         "
         :value="
-          '日收益：' +
+          '估算金额：' +
             parseFloat(allGains[0]).toLocaleString('zh', {
               minimumFractionDigits: 2,
             }) +
@@ -628,12 +639,19 @@ export default {
     this.init();
   },
   computed: {
+    allAmount() {
+      let totalAmount = 0;
+      this.dataList.forEach((val) => {
+        totalAmount += parseFloat(val.amount || 0);
+      });
+      return totalAmount.toFixed(2);
+    },
     allGains() {
       let allGains = 0;
       let allNum = 0;
       this.dataList.forEach((val) => {
-        allGains += parseFloat(val.gains);
-        allNum += parseFloat(val.amount);
+        allGains += parseFloat(val.gains || 0);
+        allNum += parseFloat(val.amount || 0);
       });
       allGains = allGains.toFixed(2);
       let allGainsRate = ((allGains * 100) / allNum).toFixed(2);
@@ -643,8 +661,8 @@ export default {
       let allCostGains = 0;
       let allNum = 0;
       this.dataList.forEach((val) => {
-        allCostGains += parseFloat(val.costGains);
-        allNum += parseFloat(val.amount);
+        allCostGains += parseFloat(val.costGains || 0);
+        allNum += parseFloat(val.amount || 0);
       });
       allCostGains = allCostGains.toFixed(2);
       let allCostGainsRate = (
@@ -723,6 +741,62 @@ export default {
     },
   },
   methods: {
+    toNullableNumber(value) {
+      if (value === null || value === undefined || value === "") {
+        return null;
+      }
+
+      const numberValue = Number(value);
+      return Number.isNaN(numberValue) ? null : numberValue;
+    },
+    parseFundEstimateResponse(payload) {
+      if (!payload || typeof payload !== "string") {
+        return null;
+      }
+
+      const matched = payload.match(/^jsonpgz\((.*)\);?$/);
+      if (!matched || !matched[1]) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(matched[1]);
+      } catch (error) {
+        return null;
+      }
+    },
+    fetchFundEstimate(code) {
+      return this.$axios
+        .get(`https://fundgz.1234567.com.cn/js/${code}.js`, {
+          params: {
+            rt: Date.now(),
+          },
+          responseType: "text",
+          transformResponse: [(value) => value],
+        })
+        .then((res) => this.parseFundEstimateResponse(res.data))
+        .catch(() => null);
+    },
+    applyFundEstimate(baseData, estimateData) {
+      if (!estimateData) {
+        return baseData;
+      }
+
+      const estimatedNav = this.toNullableNumber(estimateData.gsz);
+      const estimatedRate = this.toNullableNumber(estimateData.gszzl);
+
+      if (estimatedNav === null) {
+        return baseData;
+      }
+
+      return {
+        ...baseData,
+        gsz: estimatedNav,
+        gszzl: estimatedRate === null ? baseData.gszzl : estimatedRate,
+        gztime: estimateData.gztime || baseData.gztime,
+        hasReplace: false,
+      };
+    },
     refresh() {
       this.init();
       this.isRefresh = true;
@@ -916,7 +990,12 @@ export default {
     },
 
     option() {
-      chrome.tabs.create({ url: "/options/options.html" });
+      if (chrome.runtime && chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+        return;
+      }
+
+      chrome.tabs.create({ url: chrome.runtime.getURL("options/options.html") });
     },
     reward() {
       this.rewardShadow = true;
@@ -1033,26 +1112,46 @@ export default {
         fundlist;
       this.$axios
         .get(url)
-        .then((res) => {
+        .then(async (res) => {
           this.loadingList = false;
-          let data = res.data.Datas;
+          let data = res.data.Datas || [];
           this.dataList = [];
           let dataList = [];
+          let missingEstimateCodes = [];
 
           data.forEach((val) => {
+            const nav = this.toNullableNumber(val.NAV);
+            const estimatedNav = this.toNullableNumber(val.GSZ);
+            const estimatedRate = this.toNullableNumber(val.GSZZL);
+            const actualRate = this.toNullableNumber(val.NAVCHGRT);
+            const hasRealtimeValue =
+              !!val.GZTIME && val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10);
+            const hasDailyRate = actualRate !== null && val.PDATE != "--";
             let data = {
               fundcode: val.FCODE,
               name: val.SHORTNAME,
               jzrq: val.PDATE,
-              dwjz: isNaN(val.NAV) ? null : val.NAV,
-              gsz: isNaN(val.GSZ) ? null : val.GSZ,
-              gszzl: isNaN(val.GSZZL) ? 0 : val.GSZZL,
-              gztime: val.GZTIME,
+              dwjz: nav,
+              gsz: estimatedNav,
+              gszzl: estimatedRate,
+              gztime: val.GZTIME || val.PDATE || "--",
             };
-            if (val.PDATE != "--" && val.PDATE == val.GZTIME.substr(0, 10)) {
-              data.gsz = val.NAV;
-              data.gszzl = isNaN(val.NAVCHGRT) ? 0 : val.NAVCHGRT;
+            if (hasRealtimeValue) {
+              data.gsz = nav;
+              data.gszzl = actualRate;
               data.hasReplace = true;
+            } else if (data.gsz === null && hasDailyRate) {
+              data.gsz = nav;
+              data.gszzl = actualRate;
+              data.hasReplace = true;
+            }
+
+            if (estimatedNav === null) {
+              missingEstimateCodes.push(data.fundcode);
+            }
+
+            if (data.gszzl === null) {
+              data.gszzl = 0;
             }
 
             let slt = this.fundListM.filter(
@@ -1078,11 +1177,29 @@ export default {
 
             dataList.push(data);
           });
+
+          if (missingEstimateCodes.length) {
+            const estimateEntries = await Promise.all(
+              missingEstimateCodes.map(async (code) => [
+                code,
+                await this.fetchFundEstimate(code),
+              ])
+            );
+            const estimateMap = Object.fromEntries(estimateEntries);
+            dataList = dataList.map((item) =>
+              this.applyFundEstimate(item, estimateMap[item.fundcode])
+            );
+            dataList = dataList.map((item) => ({
+              ...item,
+              gains: this.calculate(item, item.hasReplace),
+            }));
+          }
+
           if (this.showBadge == 1) {
             if (this.BadgeContent == 2) {
               chrome.runtime.sendMessage({
                 type: "refreshBadgeAllGains",
-                data: data,
+                data: dataList,
               });
             }
           }
@@ -1100,6 +1217,17 @@ export default {
           }
         })
         .catch((error) => {});
+    },
+    formatUpdateTime(item) {
+      if (!item || !item.gztime || item.gztime === "--") {
+        return "--";
+      }
+
+      if (item.hasReplace) {
+        return item.gztime.length >= 10 ? item.gztime.substr(5, 5) : item.gztime;
+      }
+
+      return item.gztime.length > 10 ? item.gztime.substr(10) : item.gztime;
     },
     changeNum(item, ind) {
       debounce(() => {
@@ -1140,6 +1268,9 @@ export default {
       });
     },
     calculateMoney(val) {
+      if (val.dwjz === null || val.dwjz === undefined) {
+        return 0;
+      }
       let sum = (val.dwjz * val.num).toFixed(2);
       return sum;
     },
@@ -1149,7 +1280,7 @@ export default {
       if (hasReplace) {
         sum = ((val.dwjz - val.dwjz / (1 + val.gszzl * 0.01)) * num).toFixed(2);
       } else {
-        if (val.gsz) {
+        if (val.gsz != null) {
           sum = ((val.gsz - val.dwjz) * num).toFixed(2);
         }
       }
@@ -1524,6 +1655,12 @@ tbody tr:hover {
   font-weight: bold;
 }
 
+.btn-total-amount {
+  color: #c75b5b;
+  border-color: #f0b3b3;
+  background-color: #fde9e9;
+}
+
 .slt {
   color: #fff;
   background-color: #67c23a;
@@ -1727,15 +1864,15 @@ tbody tr:hover {
     border: 1px solid rgba($color: #409eff, $alpha: 0.6);
     background-color: rgba($color: #409eff, $alpha: 0.6);
   }
-  /deep/ .el-input__inner {
+  ::v-deep .el-input__inner {
     background-color: rgba($color: #ffffff, $alpha: 0.16);
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
-  /deep/ .el-select__input {
+  ::v-deep .el-select__input {
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ tbody tr:hover {
+  ::v-deep tbody tr:hover {
     background-color: rgba($color: #ffffff, $alpha: 0.12);
   }
 
@@ -1759,6 +1896,12 @@ tbody tr:hover {
     background-color: rgba($color: #4eb61b, $alpha: 0.6);
   }
 
+  .btn-total-amount {
+    color: rgba($color: #ffd4d4, $alpha: 0.95);
+    border: 1px solid rgba($color: #f0b3b3, $alpha: 0.6);
+    background-color: rgba($color: #c75b5b, $alpha: 0.26);
+  }
+
   .tab-col {
     background-color: rgba($color: #ffffff, $alpha: 0.09);
     border-radius: 5px;
@@ -1773,16 +1916,16 @@ tbody tr:hover {
     color: rgba($color: #ffffff, $alpha: 0.38);
   }
 
-  /deep/ .el-select .el-input.is-focus .el-input__inner {
+  ::v-deep .el-select .el-input.is-focus .el-input__inner {
     border-color: rgba($color: #409eff, $alpha: 0.6);
   }
 
-  /deep/ .el-select .el-tag {
+  ::v-deep .el-select .el-tag {
     background-color: rgba($color: #ffffff, $alpha: 0.14);
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ .el-select-dropdown {
+  ::v-deep .el-select-dropdown {
     background-color: #383838;
     border: 1px solid rgba($color: #ffffff, $alpha: 0.38);
     .popper__arrow::after {
@@ -1808,14 +1951,14 @@ tbody tr:hover {
     }
   }
 
-  /deep/ .el-switch__label.is-active {
+  ::v-deep .el-switch__label.is-active {
     color: rgba($color: #409eff, $alpha: 0.87);
   }
-  /deep/ .el-switch__label {
+  ::v-deep .el-switch__label {
     color: rgba($color: #ffffff, $alpha: 0.6);
   }
 
-  /deep/ .hasReplace-tip {
+  ::v-deep .hasReplace-tip {
     color: rgba($color: #ffffff, $alpha: 0.6);
     border: 1px solid rgba($color: #409eff, $alpha: 0.6);
     background-color: rgba($color: #409eff, $alpha: 0.6);
