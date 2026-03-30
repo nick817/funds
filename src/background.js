@@ -414,8 +414,8 @@ var initContextMenus = () => {
 var openPopupWindow = () => {
   chrome.windows.create({
     url: chrome.runtime.getURL("popup/popup.html"),
-    width: 700,
-    height: 550,
+    width: 1440,
+    height: 820,
     top: 200,
     type: "popup",
   }, (function (e) {
