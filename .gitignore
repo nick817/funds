@@ -106,3 +106,7 @@ dist-zip
 dev.md
 src/popup/App copy.vue
 .DS_Store
+# Extension build artifacts
+extension.pem
+funds-extension.crx
+funds-extension.zip

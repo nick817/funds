@@ -190,6 +190,14 @@
               @click="openStockConfigBox"
             />
           </div>
+          <div style="padding:8px 0 10px">
+            <input
+              class="btn"
+              type="button"
+              value="存款导入导出文本"
+              @click="openBankConfigBox"
+            />
+          </div>
           <p>
             tips：插件本身支持跟随浏览器账号自动同步，若想手动同步可使用导入导出功能，同步小程序数据可以选择导入导出文本。基金 Excel 导入时不用填写基金名称；股票支持 Excel 或 JSON 文本导入，文本格式可直接使用 stockListM。
           </p>
@@ -509,7 +517,7 @@ export default {
             obj.cost = item["成本价"];
             arr.push(obj);
           });
-          chrome.storage.sync.set({ fundListM: arr }, (val) => {
+          chrome.storage.local.set({ fundListM: arr }, (val) => {
             this.initOption();
             chrome.runtime.sendMessage({ type: "refresh" });
             this.$message({
@@ -621,6 +629,7 @@ export default {
       );
     },
     initOption() {
+      chrome.storage.local.get(["fundListM"], (localRes) => {
       chrome.storage.sync.get(
         [
           "holiday",
@@ -636,11 +645,14 @@ export default {
           "BadgeContent",
           "BadgeType",
           "userId",
-          "fundListM",
           "stockListM",
           "fundListGroup",
         ],
         (res) => {
+          // 优先从 local 读取 fundListM
+          if (localRes.fundListM && localRes.fundListM.length) {
+            res.fundListM = localRes.fundListM;
+          }
           if (res.showNum) {
             //解决版本遗留问题，拆分属性
             chrome.storage.sync.set({
@@ -685,7 +697,7 @@ export default {
             this.fundListM = res.fundListM;
           } else if (res.fundListGroup && res.fundListGroup.length) {
             this.fundListM = flattenFundListGroup(res.fundListGroup);
-            chrome.storage.sync.set({
+            chrome.storage.local.set({
               fundListM: this.fundListM,
             });
           } else {
@@ -704,6 +716,7 @@ export default {
           this.BadgeType = res.BadgeType ? res.BadgeType : 1;
         }
       );
+      }); // end chrome.storage.local.get
     },
     getGuid() {
       return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(
@@ -715,12 +728,17 @@ export default {
       });
     },
     exportConfig() {
-      chrome.storage.sync.get(null, (res) => {
-        delete res.holiday;
-        this.configHref = "data:text/plain," + JSON.stringify(res);
-        setTimeout(() => {
-          this.$refs["configMsg"].click();
-        }, 200);
+      chrome.storage.sync.get(null, (syncRes) => {
+        delete syncRes.holiday;
+        chrome.storage.local.get(["fundListM"], (localRes) => {
+          if (localRes.fundListM && localRes.fundListM.length) {
+            syncRes.fundListM = localRes.fundListM;
+          }
+          this.configHref = "data:text/plain," + JSON.stringify(syncRes);
+          setTimeout(() => {
+            this.$refs["configMsg"].click();
+          }, 200);
+        });
       });
     },
     importInput(e) {
@@ -733,16 +751,28 @@ export default {
       reader.onload = (event) => {
         try {
           let config = JSON.parse(event.target.result);
-          chrome.storage.sync.set(config, (val) => {
-            this.initOption();
-            chrome.runtime.sendMessage({ type: "refresh" });
-            this.$message({
-              message: "恭喜,导入配置成功！",
-              type: "success",
-              center: true,
+          let fundListM = null;
+          if (config.fundListM) {
+            fundListM = config.fundListM;
+            delete config.fundListM;
+          }
+          const doImport = () => {
+            chrome.storage.sync.set(config, (val) => {
+              this.initOption();
+              chrome.runtime.sendMessage({ type: "refresh" });
+              this.$message({
+                message: "恭喜,导入配置成功！",
+                type: "success",
+                center: true,
+              });
+              this.$refs.importInput.value = null;
             });
-            this.$refs.importInput.value = null;
-          });
+          };
+          if (fundListM) {
+            chrome.storage.local.set({ fundListM: fundListM }, doImport);
+          } else {
+            doImport();
+          }
         } catch (e) {
           this.$message({
             message: "导入失败！",
@@ -762,6 +792,9 @@ export default {
     },
     openStockConfigBox() {
       this.$refs.configBox.init("stock");
+    },
+    openBankConfigBox() {
+      this.$refs.configBox.init("bank");
     },
     getHoliday() {
       this.disabled = true;

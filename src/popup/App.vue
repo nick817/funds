@@ -146,10 +146,10 @@
                   </div>
                 </div>
                 <!-- 第一层子级：基金、股票 -->
-                <div v-if="dataList.length || stockDataList.length" class="summary-children">
+                <div v-if="dataList.length || stockDataList.length || bankList.length" class="summary-children">
                   <!-- 基金（第一层子级） -->
                   <div v-if="dataList.length" class="summary-child-row">
-                    <span class="tree-branch">{{ stockDataList.length ? '├' : '└' }}</span>
+                    <span class="tree-branch">{{ (stockDataList.length || bankList.length) ? '├' : '└' }}</span>
                     <div class="summary-child-content">
                       <div class="summary-row summary-row-home">
                         <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
@@ -212,7 +212,7 @@
                   </div>
                   <!-- 股票（第一层子级） -->
                   <div v-if="stockDataList.length" class="summary-child-row">
-                    <span class="tree-branch">└</span>
+                    <span class="tree-branch">{{ bankList.length ? '├' : '└' }}</span>
                     <div class="summary-row summary-row-home">
                       <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
                         <span class="summary-label">股票持仓</span>
@@ -227,6 +227,25 @@
                         <span class="summary-label">股票持有</span>
                         <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                         <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 存款（第一层子级） -->
+                  <div v-if="bankList.length" class="summary-child-row">
+                    <span class="tree-branch">└</span>
+                    <div class="summary-row summary-row-home">
+                      <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
+                        <span class="summary-label">存款总额</span>
+                        <strong class="summary-value">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                      </div>
+                      <div class="summary-card summary-card-compact summary-card-red">
+                        <span class="summary-label">存款本金</span>
+                        <strong class="summary-value">{{ parseFloat(bankPrincipal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                      </div>
+                      <div :class="['summary-card summary-card-compact', summaryGainCardClass(bankGains[0])]">
+                        <span class="summary-label">存款收益</span>
+                        <strong class="summary-value">{{ parseFloat(bankGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                        <span class="summary-meta">{{ isNaN(bankGains[1]) ? '' : '（' + bankGains[1] + '%）' }}</span>
                       </div>
                     </div>
                   </div>
@@ -763,6 +782,69 @@
               </table>
             </div>
           </el-tab-pane>
+          <el-tab-pane :label="`存款（${bankList.length}）`" name="bank">
+            <div class="summary-panel tab-summary-panel" v-if="showAmount">
+              <div class="summary-row tab-summary-row">
+                <div class="summary-card summary-card-compact summary-card-red">
+                  <span class="summary-label">存款总额</span>
+                  <strong class="summary-value">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div class="summary-card summary-card-compact summary-card-red">
+                  <span class="summary-label">存款本金</span>
+                  <strong class="summary-value">{{ parseFloat(bankPrincipal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+                <div :class="['summary-card summary-card-compact', summaryGainCardClass(bankGains[0])]">
+                  <span class="summary-label">存款收益</span>
+                  <strong class="summary-value">{{ parseFloat(bankGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                  <span class="summary-meta">{{ isNaN(bankGains[1]) ? '' : '（' + bankGains[1] + '%）' }}</span>
+                </div>
+                <div class="summary-card summary-card-compact summary-card-red">
+                  <span class="summary-label">年收入</span>
+                  <strong class="summary-value">{{ parseFloat(bankAnnualIncome).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="table-row" style="min-height:160px">
+              <table :class="tableHeight">
+                <thead>
+                  <tr>
+                    <th class="align-left">银行名称（{{ bankList.length }}）</th>
+                    <th>本金</th>
+                    <th>总额</th>
+                    <th>年收入</th>
+                    <th>年利率</th>
+                    <th v-if="editingBankIndex >= 0">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(el, index) in bankList" :key="index" @dblclick="dblclickBank(index)">
+                    <template v-if="editingBankIndex === index">
+                      <td class="align-left"><input class="btn num" v-model="el.bankName" type="text" /></td>
+                      <td><input class="btn num" v-model="el.principal" type="text" /></td>
+                      <td><input class="btn num" v-model="el.totalAmount" type="text" /></td>
+                      <td><input class="btn num" v-model="el.annualIncome" type="text" /></td>
+                      <td><input class="btn num" v-model="el.annualRate" type="text" /></td>
+                      <td>
+                        <input class="btn" type="button" value="保存" @click="saveBankEdit" />
+                        <input class="btn red edit" type="button" value="✖" @click="dltBank(index)" />
+                      </td>
+                    </template>
+                    <template v-else>
+                      <td class="align-left">{{ el.bankName }}</td>
+                      <td>{{ parseFloat(el.principal).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
+                      <td>{{ parseFloat(el.totalAmount).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
+                      <td>{{ parseFloat(el.annualIncome).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
+                      <td>{{ el.annualRate }}%</td>
+                      <td v-if="editingBankIndex >= 0"></td>
+                    </template>
+                  </tr>
+                  <tr v-if="!bankList.length">
+                    <td class="empty-row" :colspan="editingBankIndex >= 0 ? 6 : 5">暂无存款数据</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </el-tab-pane>
         </el-tabs>
       </div>
     </div>
@@ -921,6 +1003,8 @@ export default {
       dataListDft: [],
       stockDataList: [],
       stockDataListDft: [],
+      bankList: [],
+      editingBankIndex: -1,
       myVar: null,
       myVar1: null,
       rewardShadow: false,
@@ -1010,7 +1094,7 @@ export default {
       darkMode: false,
       normalFontSize: false,
       diyContainer: false,
-      containerWidth: 790,
+      containerWidth: 1050,
       containerHeight: 590,
       detailShadow: false,
       changelogShadow: false,
@@ -1087,8 +1171,26 @@ export default {
     stockAmount() {
       return this.sumAmount(this.stockDataList);
     },
+    bankTotalAmount() {
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0).toFixed(2);
+    },
+    bankPrincipal() {
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.principal) || 0), 0).toFixed(2);
+    },
+    bankAnnualIncome() {
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.annualIncome) || 0), 0).toFixed(2);
+    },
+    bankGains() {
+      let total = parseFloat(this.bankTotalAmount);
+      let principal = parseFloat(this.bankPrincipal);
+      let gains = (total - principal).toFixed(2);
+      let rate = principal > 0 ? ((total - principal) / principal * 100).toFixed(2) : '0.00';
+      return [gains, rate];
+    },
     allAmount() {
-      return this.sumAmount(this.allHoldingList);
+      let holdingAmount = parseFloat(this.sumAmount(this.allHoldingList)) || 0;
+      let bankAmount = parseFloat(this.bankTotalAmount) || 0;
+      return (holdingAmount + bankAmount).toFixed(2);
     },
     fundGains() {
       return this.sumGains(this.dataList);
@@ -1486,11 +1588,11 @@ export default {
       });
     },
     init() {
+      chrome.storage.local.get(["fundListM"], (localRes) => {
       chrome.storage.sync.get(
         [
           "RealtimeFundcode",
           "RealtimeIndcode",
-          "fundListM",
           "showAmount",
           "showGains",
           "fundList",
@@ -1511,10 +1613,15 @@ export default {
           "fundListGroup",
           "stockSortTypeObj",
           "stockListM",
+          "bankList",
         ],
         (res) => {
           if (chrome.runtime.lastError) {
             console.error("storage.sync.get error:", chrome.runtime.lastError);
+          }
+          // 优先从 local 读取 fundListM（突破 sync 的 8KB 限制）
+          if (localRes.fundListM && localRes.fundListM.length) {
+            res.fundListM = localRes.fundListM;
           }
           try {
             this.fundList = res.fundList ? res.fundList : this.fundList;
@@ -1522,7 +1629,7 @@ export default {
               this.fundListM = res.fundListM;
             } else if (res.fundListGroup && res.fundListGroup.length) {
               this.fundListM = flattenFundListGroup(res.fundListGroup);
-              chrome.storage.sync.set({
+              chrome.storage.local.set({
                 fundListM: this.fundListM,
               });
             } else {
@@ -1533,13 +1640,14 @@ export default {
                 };
                 this.fundListM.push(val);
               }
-              chrome.storage.sync.set({
+              chrome.storage.local.set({
                 fundListM: this.fundListM,
               });
             }
             this.stockListM = (res.stockListM || [])
               .map((item) => this.normalizeStockItem(item))
               .filter(Boolean);
+            this.bankList = res.bankList || [];
             if (res.userId) {
               this.userId = res.userId;
             } else {
@@ -1592,6 +1700,7 @@ export default {
           }
         }
       );
+      }); // end chrome.storage.local.get
     },
     getGuid() {
       return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(
@@ -2012,6 +2121,37 @@ export default {
             }));
           }
 
+          // 为 API 未返回的基金（私募/投顾等）创建 fallback 条目
+          let apiCodes = new Set(dataList.map(item => item.fundcode));
+          this.fundListM.forEach(item => {
+            if (!apiCodes.has(item.code)) {
+              let costVal = parseFloat(item.cost) || 0;
+              let numVal = parseFloat(item.num) || 0;
+              let dwjz = costVal;
+              if (item.nav !== undefined && item.nav !== null) {
+                dwjz = parseFloat(item.nav) || costVal;
+              }
+              let fallback = {
+                fundcode: item.code,
+                name: item.name || item.code,
+                jzrq: '--',
+                dwjz: dwjz,
+                gsz: dwjz,
+                gszzl: 0,
+                gztime: '--',
+                num: numVal,
+                cost: costVal,
+                accountType: item.accountType || '',
+                isPrivate: true,
+              };
+              fallback.amount = this.calculateMoney(fallback);
+              fallback.gains = 0;
+              fallback.costGains = this.calculateCost(fallback);
+              fallback.costGainsRate = this.calculateCostRate(fallback);
+              dataList.push(fallback);
+            }
+          });
+
           if (this.showBadge == 1) {
             if (this.BadgeContent == 2) {
               chrome.runtime.sendMessage({
@@ -2053,7 +2193,7 @@ export default {
             fund.num = item.num;
           }
         }
-        chrome.storage.sync.set(
+        chrome.storage.local.set(
           {
             fundListM: this.fundListM,
           },
@@ -2073,7 +2213,7 @@ export default {
             fund.cost = item.cost;
           }
         }
-        chrome.storage.sync.set(
+        chrome.storage.local.set(
           {
             fundListM: this.fundListM,
           },
@@ -2168,7 +2308,7 @@ export default {
         this.fundListM.push(val);
       });
 
-      chrome.storage.sync.set(
+      chrome.storage.local.set(
         {
           fundListM: this.fundListM,
         },
@@ -2244,7 +2384,7 @@ export default {
           }
         );
       }
-      chrome.storage.sync.set(
+      chrome.storage.local.set(
         {
           fundListM: this.fundListM,
         },
@@ -2277,6 +2417,18 @@ export default {
         }
       );
     },
+    dblclickBank(index) {
+      this.editingBankIndex = index;
+    },
+    saveBankEdit() {
+      this.editingBankIndex = -1;
+      chrome.storage.sync.set({ bankList: this.bankList });
+    },
+    dltBank(index) {
+      this.bankList.splice(index, 1);
+      this.editingBankIndex = -1;
+      chrome.storage.sync.set({ bankList: this.bankList });
+    },
     handleDragStart(e, item) {
       this.dragging = item;
     },
@@ -2286,7 +2438,7 @@ export default {
     handleDragEnd(e, item) {
       this.dragging = null;
       if (item.fundcode) {
-        chrome.storage.sync.set(
+        chrome.storage.local.set(
           {
             fundListM: this.fundListM,
           },
@@ -2367,7 +2519,7 @@ export default {
   --sun-shadow-soft: 0 10px 24px rgba(201, 157, 77, 0.12);
   --sun-text: #4f4334;
   --sun-muted: #8d7a60;
-  min-width: 400px;
+  min-width: 620px;
   min-height: 680px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -2447,16 +2599,16 @@ export default {
 }
 
 .more-width {
-  min-width: 785px;
+  min-width: 1040px;
 }
 
 .stock-more-width {
-  min-width: 785px;
+  min-width: 1040px;
 }
 
 .changelog-container {
   min-height: 575px;
-  min-width: 550px;
+  min-width: 605px;
 }
 
 .table-more-height {
@@ -2468,19 +2620,19 @@ export default {
 
 .container {
   &.num-width-1 {
-    min-width: 420px;
+    min-width: 620px;
   }
   &.num-width-2 {
-    min-width: 480px;
+    min-width: 695px;
   }
   &.num-width-3 {
-    min-width: 540px;
+    min-width: 770px;
   }
   &.num-width-4 {
-    min-width: 610px;
+    min-width: 850px;
   }
   &.num-width-5 {
-    min-width: 680px;
+    min-width: 930px;
   }
 }
 
@@ -2872,6 +3024,7 @@ tbody tr:last-child th {
   border-radius: 18px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   padding: 6px;
+  margin-bottom: 14px;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__nav-wrap::after {
@@ -2880,24 +3033,28 @@ tbody tr:last-child th {
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__nav {
   display: flex;
-  gap: 8px;
+  flex-direction: row;
+  gap: 4px;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__item {
   width: auto;
-  min-width: 120px;
-  height: 44px;
-  line-height: 44px;
+  min-width: 0;
+  height: 36px;
+  line-height: 36px;
   text-align: center;
-  padding: 0 16px;
-  font-size: 14px;
-  border-radius: 14px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 12px;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__active-bar {
-  height: 3px;
-  width: auto;
-  border-radius: 999px;
+  display: none;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__item.is-active {
+  background: rgba(240, 196, 100, 0.25);
+  border-radius: 12px;
 }
 
 ::v-deep .page-tabs > .el-tabs__content {
@@ -3062,26 +3219,26 @@ tbody tr:last-child th {
 
 //标准字号
 .normalFontSize {
-  min-width: 450px;
+  min-width: 500px;
   font-size: 14px;
   &.num-width-1 {
-    min-width: 500px;
+    min-width: 550px;
   }
   &.num-width-2 {
-    min-width: 580px;
+    min-width: 640px;
   }
   &.num-width-3 {
-    min-width: 630px;
+    min-width: 695px;
   }
   &.num-width-4 {
-    min-width: 690px;
+    min-width: 760px;
   }
   &.num-width-5 {
-    min-width: 750px;
+    min-width: 825px;
   }
 
   &.stock-more-width {
-    min-width: 785px;
+    min-width: 865px;
   }
 
   .btn,
@@ -3097,7 +3254,7 @@ tbody tr:last-child th {
 
 .detail-container {
   min-height: 720px;
-  min-width: 610px;
+  min-width: 670px;
 }
 
 .detailTable {

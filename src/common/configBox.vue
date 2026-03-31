@@ -18,11 +18,14 @@
       <p class="mode-tip" v-if="mode == 'stock'">
         股票文本模式仅处理 stockListM。可直接粘贴 {"stockListM":[...]}，也可直接粘贴数组 [...]
       </p>
+      <p class="mode-tip" v-if="mode == 'bank'">
+        存款文本模式仅处理 bankList。可直接粘贴 {"bankList":[...]}，也可直接粘贴数组 [...]
+      </p>
       <div class="tab-content" v-if="checked == 'export'">
         <el-input
           type="textarea"
           :rows="15"
-          :placeholder="mode == 'stock' ? '此处显示股票 JSON 文本' : '请输入内容'"
+          :placeholder="mode == 'stock' ? '此处显示股票 JSON 文本' : mode == 'bank' ? '此处显示存款 JSON 文本' : '请输入内容'"
           v-model="exportConfigStr"
         >
         </el-input>
@@ -39,14 +42,14 @@
         <el-input
           type="textarea"
           :rows="15"
-          :placeholder="mode == 'stock' ? '请在此输入框粘贴股票 JSON 文本' : '请在此输入框粘贴配置文本'"
+          :placeholder="mode == 'stock' ? '请在此输入框粘贴股票 JSON 文本' : mode == 'bank' ? '请在此输入框粘贴存款 JSON 文本' : '请在此输入框粘贴配置文本'"
           v-model="inputConfigStr"
         >
         </el-input>
         <input
           class="btn success"
           type="button"
-          :value="mode == 'stock' ? '提交股票文本' : '提交配置文本'"
+          :value="mode == 'stock' ? '提交股票文本' : mode == 'bank' ? '提交存款文本' : '提交配置文本'"
           @click="importInput"
         />
       </div>
@@ -111,16 +114,28 @@ export default {
       this.configShadow = true;
       this.checked = "export";
       this.inputConfigStr = null;
-      chrome.storage.sync.get(null, (res) => {
-        delete res.holiday;
+      chrome.storage.sync.get(null, (syncRes) => {
+        delete syncRes.holiday;
         if (this.mode === "stock") {
           this.exportConfigStr = JSON.stringify({
-            stockListM: res.stockListM || [],
+            stockListM: syncRes.stockListM || [],
+          });
+          return;
+        }
+        if (this.mode === "bank") {
+          this.exportConfigStr = JSON.stringify({
+            bankList: syncRes.bankList || [],
           });
           return;
         }
 
-        this.exportConfigStr = JSON.stringify(res);
+        // 全部导出时，从 local 获取 fundListM 合并
+        chrome.storage.local.get(["fundListM"], (localRes) => {
+          if (localRes.fundListM && localRes.fundListM.length) {
+            syncRes.fundListM = localRes.fundListM;
+          }
+          this.exportConfigStr = JSON.stringify(syncRes);
+        });
       });
     },
     close() {
@@ -149,19 +164,42 @@ export default {
             }
           }
 
+          if (this.mode === "bank") {
+            if (Array.isArray(config)) {
+              config = { bankList: config };
+            } else if (!Array.isArray(config.bankList)) {
+              throw new Error("bank config format invalid");
+            }
+          }
+
           if ((!config.fundListM || !config.fundListM.length) && config.fundListGroup) {
             config.fundListM = flattenFundListGroup(config);
           }
 
-          chrome.storage.sync.set(config, (val) => {
-            this.$emit("success", false);
+          // fundListM 存储到 local（突破 sync 的 8KB 限制）
+          let fundListM = null;
+          if (config.fundListM) {
+            fundListM = config.fundListM;
+            delete config.fundListM;
+          }
 
-            this.$message({
-              message: this.mode === "stock" ? "恭喜,导入股票配置成功！" : "恭喜,导入配置成功！",
-              type: "success",
-              center: true,
+          const doImport = () => {
+            chrome.storage.sync.set(config, (val) => {
+              this.$emit("success", false);
+
+              this.$message({
+                message: this.mode === "stock" ? "恭喜,导入股票配置成功！" : this.mode === "bank" ? "恭喜,导入存款配置成功！" : "恭喜,导入配置成功！",
+                type: "success",
+                center: true,
+              });
             });
-          });
+          };
+
+          if (fundListM) {
+            chrome.storage.local.set({ fundListM: fundListM }, doImport);
+          } else {
+            doImport();
+          }
         }
       } catch (e) {
         this.$message({
