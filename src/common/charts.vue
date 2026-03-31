@@ -343,7 +343,7 @@ export default {
             axisLabel: {
               color: this.yAxisLabelColor,
               formatter: (val) => {
-                return val.toFixed(2) + "%";
+                return val.toFixed(0) + "%";
               },
             },
             splitLine: {
@@ -435,8 +435,8 @@ export default {
         : "#4eb61b";
     },
     handle_num(data) {
-      var _aa = Math.abs(Math.max.apply(null, data)).toFixed(2);
-      var _bb = Math.abs(Math.min.apply(null, data)).toFixed(2);
+      var _aa = Math.abs(Math.max.apply(null, data)).toFixed(0);
+      var _bb = Math.abs(Math.min.apply(null, data)).toFixed(0);
       return _aa > _bb ? _aa : _bb;
     },
     getData() {
@@ -448,10 +448,10 @@ export default {
         this.loading = false;
         let dataList = res.data.Datas.map((item) => item.split(","));
         this.option.series[0].data = dataList.map((item) =>
-          (+item[2]).toFixed(2)
+          (+item[2]).toFixed(0)
         );
         this.option.series[1].data = dataList.map((item) =>
-          (+item[2]).toFixed(2)
+          (+item[2]).toFixed(0)
         );
         let aa = this.handle_num(this.option.series[0].data);
         this.DWJZ = res.data.Expansion.DWJZ;

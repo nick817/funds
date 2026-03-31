@@ -61,7 +61,7 @@ export default {
         tooltip: {
           trigger: "axis",
           formatter: (p) => {
-            return `${p[0].name}<br />${(p[0].value/100000000).toFixed(2)}亿元`;
+            return `${p[0].name}<br />${(p[0].value/100000000).toFixed(0)}亿元`;
           },
         },
         grid: {
@@ -85,7 +85,7 @@ export default {
           axisLabel: {
             color: this.defaultColor,
             formatter: (val) => {
-              return (val / 100000000).toFixed(2);
+              return (val / 100000000).toFixed(0);
             },
           },
           splitLine: {

@@ -127,130 +127,85 @@
                   </div>
                 </div>
               </div>
-              <div class="summary-panel summary-dashboard" v-if="showCost || showGains || showAmount">
-                <!-- 持仓总额（顶层） -->
-                <div class="summary-row summary-row-home">
-                  <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
-                    <span class="summary-label">持仓总额</span>
-                    <strong class="summary-value">{{ parseFloat(allAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                  </div>
-                  <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(allGains[0])]">
-                    <span class="summary-label">估算金额</span>
-                    <strong class="summary-value">{{ parseFloat(allGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(allGains[1]) ? '' : '（' + allGains[1] + '%）' }}</span>
-                  </div>
-                  <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(allCostGains[0])]">
-                    <span class="summary-label">持有收益</span>
-                    <strong class="summary-value">{{ parseFloat(allCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                    <span class="summary-meta">{{ isNaN(allCostGains[1]) ? '' : '（' + allCostGains[1] + '%）' }}</span>
-                  </div>
-                </div>
-                <!-- 第一层子级：基金、股票 -->
-                <div v-if="dataList.length || stockDataList.length || bankList.length" class="summary-children">
-                  <!-- 基金（第一层子级） -->
-                  <div v-if="dataList.length" class="summary-child-row">
-                    <span class="tree-branch">{{ (stockDataList.length || bankList.length) ? '├' : '└' }}</span>
-                    <div class="summary-child-content">
-                      <div class="summary-row summary-row-home">
-                        <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
-                          <span class="summary-label">基金持仓</span>
-                          <strong class="summary-value">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                        </div>
-                        <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(fundGains[0])]">
-                          <span class="summary-label">基金估算</span>
-                          <strong class="summary-value">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                          <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
-                        </div>
-                        <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(fundCostGains[0])]">
-                          <span class="summary-label">基金持有</span>
-                          <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                          <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
-                        </div>
-                      </div>
-                      <!-- 第二层子级：财务自由、财务安全 -->
-                      <div v-if="freeDataList.length || safeDataList.length" class="summary-children">
-                        <div v-if="freeDataList.length" class="summary-child-row">
-                          <span class="tree-branch">{{ safeDataList.length ? '├' : '└' }}</span>
-                          <div class="summary-row summary-row-home">
-                            <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red" title="财务自由账户">
-                              <span class="summary-label">财务自由</span>
-                              <strong class="summary-value">{{ parseFloat(freeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                            </div>
-                            <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(freeGains[0])]" title="财务自由账户估算">
-                              <span class="summary-label">自由估算</span>
-                              <strong class="summary-value">{{ parseFloat(freeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                              <span class="summary-meta">{{ isNaN(freeGains[1]) ? '' : '（' + freeGains[1] + '%）' }}</span>
-                            </div>
-                            <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(freeCostGains[0])]" title="财务自由账户持有收益">
-                              <span class="summary-label">自由持有</span>
-                              <strong class="summary-value">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                              <span class="summary-meta">{{ isNaN(freeCostGains[1]) ? '' : '（' + freeCostGains[1] + '%）' }}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div v-if="safeDataList.length" class="summary-child-row">
-                          <span class="tree-branch">└</span>
-                          <div class="summary-row summary-row-home">
-                            <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red" title="财务安全账户">
-                              <span class="summary-label">财务安全</span>
-                              <strong class="summary-value">{{ parseFloat(safeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                            </div>
-                            <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(safeGains[0])]" title="财务安全账户估算">
-                              <span class="summary-label">安全估算</span>
-                              <strong class="summary-value">{{ parseFloat(safeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                              <span class="summary-meta">{{ isNaN(safeGains[1]) ? '' : '（' + safeGains[1] + '%）' }}</span>
-                            </div>
-                            <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(safeCostGains[0])]" title="财务安全账户持有收益">
-                              <span class="summary-label">安全持有</span>
-                              <strong class="summary-value">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                              <span class="summary-meta">{{ isNaN(safeCostGains[1]) ? '' : '（' + safeCostGains[1] + '%）' }}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- 股票（第一层子级） -->
-                  <div v-if="stockDataList.length" class="summary-child-row">
-                    <span class="tree-branch">{{ bankList.length ? '├' : '└' }}</span>
-                    <div class="summary-row summary-row-home">
-                      <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
-                        <span class="summary-label">股票持仓</span>
-                        <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                      </div>
-                      <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(stockGains[0])]">
-                        <span class="summary-label">股票当日</span>
-                        <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                        <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
-                      </div>
-                      <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(stockCostGains[0])]">
-                        <span class="summary-label">股票持有</span>
-                        <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                        <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- 存款（第一层子级） -->
-                  <div v-if="bankList.length" class="summary-child-row">
-                    <span class="tree-branch">└</span>
-                    <div class="summary-row summary-row-home">
-                      <div v-if="showAmount" class="summary-card summary-card-compact summary-card-red">
-                        <span class="summary-label">存款总额</span>
-                        <strong class="summary-value">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                      </div>
-                      <div class="summary-card summary-card-compact summary-card-red">
-                        <span class="summary-label">存款本金</span>
-                        <strong class="summary-value">{{ parseFloat(bankPrincipal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                      </div>
-                      <div :class="['summary-card summary-card-compact', summaryGainCardClass(bankGains[0])]">
-                        <span class="summary-label">存款收益</span>
-                        <strong class="summary-value">{{ parseFloat(bankGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
-                        <span class="summary-meta">{{ isNaN(bankGains[1]) ? '' : '（' + bankGains[1] + '%）' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <table class="summary-table" v-if="showCost || showGains || showAmount">
+                <thead>
+                  <tr>
+                    <th>类别</th>
+                    <th v-if="showAmount">持仓</th>
+                    <th v-if="showGains">估算</th>
+                    <th v-if="showCost">持有收益</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="summary-table-total">
+                    <td>
+                      <span class="tree-root-node">
+                        <svg width="14" height="14" viewBox="0 0 14 14" style="margin-right:5px;vertical-align:-2px"><rect x="1" y="1" width="12" height="12" rx="3" fill="#6366f1" opacity="0.15"/><rect x="3" y="3" width="8" height="8" rx="2" fill="#6366f1"/></svg>
+                        总计
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(allAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains" :class="allGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(allGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(allGains[1]) ? '' : ' ' + allGains[1] + '%' }}</span></td>
+                    <td v-if="showCost" :class="allCostGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(allCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(allCostGains[1]) ? '' : ' ' + allCostGains[1] + '%' }}</span></td>
+                  </tr>
+                  <tr v-if="dataList.length" class="tree-level-1 tree-mid">
+                    <td>
+                      <span class="tree-node">
+                        <span class="tree-dot" style="background:#f59e0b"></span>
+                        基金
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(fundAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains" :class="fundGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(fundGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(fundGains[1]) ? '' : ' ' + fundGains[1] + '%' }}</span></td>
+                    <td v-if="showCost" :class="fundCostGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(fundCostGains[1]) ? '' : ' ' + fundCostGains[1] + '%' }}</span></td>
+                  </tr>
+                  <tr v-if="freeDataList.length" :class="['tree-level-2', safeDataList.length ? 'tree-mid' : 'tree-last']">
+                    <td>
+                      <span class="tree-node">
+                        <span class="tree-dot" style="background:#f59e0b;opacity:0.5"></span>
+                        自由
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(freeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains" :class="freeGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(freeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(freeGains[1]) ? '' : ' ' + freeGains[1] + '%' }}</span></td>
+                    <td v-if="showCost" :class="freeCostGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(freeCostGains[1]) ? '' : ' ' + freeCostGains[1] + '%' }}</span></td>
+                  </tr>
+                  <tr v-if="safeDataList.length" class="tree-level-2 tree-last">
+                    <td>
+                      <span class="tree-node">
+                        <span class="tree-dot" style="background:#f59e0b;opacity:0.4"></span>
+                        安全
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(safeAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains" :class="safeGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(safeGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(safeGains[1]) ? '' : ' ' + safeGains[1] + '%' }}</span></td>
+                    <td v-if="showCost" :class="safeCostGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(safeCostGains[1]) ? '' : ' ' + safeCostGains[1] + '%' }}</span></td>
+                  </tr>
+                  <tr v-if="stockDataList.length" :class="['tree-level-1', bankList.length ? 'tree-mid' : 'tree-last']">
+                    <td>
+                      <span class="tree-node">
+                        <span class="tree-dot" style="background:#10b981"></span>
+                        股票
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains" :class="stockGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(stockGains[1]) ? '' : ' ' + stockGains[1] + '%' }}</span></td>
+                    <td v-if="showCost" :class="stockCostGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(stockCostGains[1]) ? '' : ' ' + stockCostGains[1] + '%' }}</span></td>
+                  </tr>
+                  <tr v-if="bankList.length" class="tree-level-1 tree-last">
+                    <td>
+                      <span class="tree-node">
+                        <span class="tree-dot" style="background:#3b82f6"></span>
+                        存款
+                      </span>
+                    </td>
+                    <td v-if="showAmount">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showGains">{{ parseFloat(bankPrincipal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct"> 本金</span></td>
+                    <td v-if="showCost" :class="bankGains[0] >= 0 ? 'up' : 'down'">{{ parseFloat(bankGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}<span class="pct">{{ isNaN(bankGains[1]) ? '' : ' ' + bankGains[1] + '%' }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <asset-pie v-if="pieChartData.length > 0 && showAmount" :valData="pieChartData" :darkMode="darkMode"></asset-pie>
             </div>
           </el-tab-pane>
           <el-tab-pane :label="`基金（${dataList.length}）`" name="fund">
@@ -266,7 +221,7 @@
                   <span class="summary-meta">{{ isNaN(fundGains[1]) ? '' : '（' + fundGains[1] + '%）' }}</span>
                 </div>
                 <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(fundCostGains[0])]">
-                  <span class="summary-label">基金持有</span>
+                  <span class="summary-label">基金收益</span>
                   <strong class="summary-value">{{ parseFloat(fundCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(fundCostGains[1]) ? '' : '（' + fundCostGains[1] + '%）' }}</span>
                 </div>
@@ -339,7 +294,7 @@
                     v-for="(el, index) in dataList"
                     :key="el.fundcode"
                     :draggable="isEdit"
-                    :class="drag"
+                    :class="[drag, el.isPrivate ? 'private-fund-row' : '']"
                     @dragstart="handleDragStart($event, el)"
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
@@ -355,7 +310,21 @@
                       <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
                     </td>
                     <td v-if="isEdit">{{ el.fundcode }}</td>
-                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="showGSZ && !isEdit" @dblclick="editNav(el)">
+                      <template v-if="editingNavCode === el.fundcode && el.isPrivate">
+                        <input
+                          class="btn num small-input"
+                          v-model="el.gsz"
+                          @blur="saveNav(el)"
+                          @keyup.enter="saveNav(el)"
+                          v-focus
+                          type="text"
+                        />
+                      </template>
+                      <template v-else>
+                        {{ el.gsz }}
+                      </template>
+                    </td>
                     <td v-if="isEdit && (showCostRate || showCost)">
                       <input
                         class="btn num"
@@ -369,14 +338,14 @@
                     <td v-if="showAmount">
                       {{
                         parseFloat(el.amount).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
                     <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">
                       {{
                         parseFloat(el.costGains).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
@@ -390,7 +359,7 @@
                     <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">
                       {{
                         parseFloat(el.gains).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
@@ -448,7 +417,7 @@
                   <span class="summary-meta">{{ isNaN(freeGains[1]) ? '' : '（' + freeGains[1] + '%）' }}</span>
                 </div>
                 <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(freeCostGains[0])]">
-                  <span class="summary-label">自由持有</span>
+                  <span class="summary-label">自由收益</span>
                   <strong class="summary-value">{{ parseFloat(freeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(freeCostGains[1]) ? '' : '（' + freeCostGains[1] + '%）' }}</span>
                 </div>
@@ -495,7 +464,7 @@
                     v-for="(el, index) in freeDataList"
                     :key="el.fundcode"
                     :draggable="isEdit"
-                    :class="drag"
+                    :class="[drag, el.isPrivate ? 'private-fund-row' : '']"
                     @dragstart="handleDragStart($event, el)"
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
@@ -505,15 +474,29 @@
                       <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
                     </td>
                     <td v-if="isEdit">{{ el.fundcode }}</td>
-                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="showGSZ && !isEdit" @dblclick="editNav(el)">
+                      <template v-if="editingNavCode === el.fundcode && el.isPrivate">
+                        <input
+                          class="btn num small-input"
+                          v-model="el.gsz"
+                          @blur="saveNav(el)"
+                          @keyup.enter="saveNav(el)"
+                          v-focus
+                          type="text"
+                        />
+                      </template>
+                      <template v-else>
+                        {{ el.gsz }}
+                      </template>
+                    </td>
                     <td v-if="isEdit && (showCostRate || showCost)">
                       <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
                     </td>
-                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
-                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
                     <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
-                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
                     <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
                       <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
@@ -545,7 +528,7 @@
                   <span class="summary-meta">{{ isNaN(safeGains[1]) ? '' : '（' + safeGains[1] + '%）' }}</span>
                 </div>
                 <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(safeCostGains[0])]">
-                  <span class="summary-label">安全持有</span>
+                  <span class="summary-label">安全收益</span>
                   <strong class="summary-value">{{ parseFloat(safeCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(safeCostGains[1]) ? '' : '（' + safeCostGains[1] + '%）' }}</span>
                 </div>
@@ -592,7 +575,7 @@
                     v-for="(el, index) in safeDataList"
                     :key="el.fundcode"
                     :draggable="isEdit"
-                    :class="drag"
+                    :class="[drag, el.isPrivate ? 'private-fund-row' : '']"
                     @dragstart="handleDragStart($event, el)"
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
@@ -602,15 +585,29 @@
                       <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
                     </td>
                     <td v-if="isEdit">{{ el.fundcode }}</td>
-                    <td v-if="showGSZ && !isEdit">{{ el.gsz }}</td>
+                    <td v-if="showGSZ && !isEdit" @dblclick="editNav(el)">
+                      <template v-if="editingNavCode === el.fundcode && el.isPrivate">
+                        <input
+                          class="btn num small-input"
+                          v-model="el.gsz"
+                          @blur="saveNav(el)"
+                          @keyup.enter="saveNav(el)"
+                          v-focus
+                          type="text"
+                        />
+                      </template>
+                      <template v-else>
+                        {{ el.gsz }}
+                      </template>
+                    </td>
                     <td v-if="isEdit && (showCostRate || showCost)">
                       <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
                     </td>
-                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
-                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
+                    <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
                     <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
-                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { minimumFractionDigits: 2 }) }}</td>
+                    <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
                     <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
                       <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
@@ -637,12 +634,12 @@
                   <strong class="summary-value">{{ parseFloat(stockAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
                 <div v-if="showGains" :class="['summary-card summary-card-compact', summaryGainCardClass(stockGains[0])]">
-                  <span class="summary-label">股票当日</span>
+                  <span class="summary-label">股票估算</span>
                   <strong class="summary-value">{{ parseFloat(stockGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(stockGains[1]) ? '' : '（' + stockGains[1] + '%）' }}</span>
                 </div>
                 <div v-if="showCost" :class="['summary-card summary-card-compact', summaryGainCardClass(stockCostGains[0])]">
-                  <span class="summary-label">股票持有</span>
+                  <span class="summary-label">股票收益</span>
                   <strong class="summary-value">{{ parseFloat(stockCostGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(stockCostGains[1]) ? '' : '（' + stockCostGains[1] + '%）' }}</span>
                 </div>
@@ -725,14 +722,14 @@
                     <td v-if="showAmount">
                       {{
                         parseFloat(el.amount).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
                     <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">
                       {{
                         parseFloat(el.costGains).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
@@ -746,7 +743,7 @@
                     <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">
                       {{
                         parseFloat(el.gains).toLocaleString("zh", {
-                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 0,
                         })
                       }}
                     </td>
@@ -809,10 +806,11 @@
                 <thead>
                   <tr>
                     <th class="align-left">银行名称（{{ bankList.length }}）</th>
-                    <th>本金</th>
-                    <th>总额</th>
-                    <th>年收入</th>
-                    <th>年利率</th>
+                    <th @click="sortBankList('principal')" class="pointer">本金<span :class="bankSortType.principal" class="down-arrow"></span></th>
+                    <th @click="sortBankList('totalAmount')" class="pointer">总额<span :class="bankSortType.totalAmount" class="down-arrow"></span></th>
+                    <th @click="sortBankList('profit')" class="pointer">收益<span :class="bankSortType.profit" class="down-arrow"></span></th>
+                    <th @click="sortBankList('annualIncome')" class="pointer">年收入<span :class="bankSortType.annualIncome" class="down-arrow"></span></th>
+                    <th @click="sortBankList('annualRate')" class="pointer">年利率<span :class="bankSortType.annualRate" class="down-arrow"></span></th>
                     <th v-if="editingBankIndex >= 0">操作</th>
                   </tr>
                 </thead>
@@ -822,6 +820,7 @@
                       <td class="align-left"><input class="btn num" v-model="el.bankName" type="text" /></td>
                       <td><input class="btn num" v-model="el.principal" type="text" /></td>
                       <td><input class="btn num" v-model="el.totalAmount" type="text" /></td>
+                      <td :class="el.totalAmount - el.principal >= 0 ? 'up' : 'down'">{{ parseFloat((el.totalAmount - el.principal)).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
                       <td><input class="btn num" v-model="el.annualIncome" type="text" /></td>
                       <td><input class="btn num" v-model="el.annualRate" type="text" /></td>
                       <td>
@@ -831,15 +830,16 @@
                     </template>
                     <template v-else>
                       <td class="align-left">{{ el.bankName }}</td>
-                      <td>{{ parseFloat(el.principal).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
-                      <td>{{ parseFloat(el.totalAmount).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
-                      <td>{{ parseFloat(el.annualIncome).toLocaleString('zh', { minimumFractionDigits: 2 }) }}</td>
+                      <td>{{ parseFloat(el.principal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                      <td>{{ parseFloat(el.totalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                      <td :class="el.totalAmount - el.principal >= 0 ? 'up' : 'down'">{{ parseFloat((el.totalAmount - el.principal)).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
+                      <td>{{ parseFloat(el.annualIncome).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
                       <td>{{ el.annualRate }}%</td>
                       <td v-if="editingBankIndex >= 0"></td>
                     </template>
                   </tr>
                   <tr v-if="!bankList.length">
-                    <td class="empty-row" :colspan="editingBankIndex >= 0 ? 6 : 5">暂无存款数据</td>
+                    <td class="empty-row" :colspan="editingBankIndex >= 0 ? 7 : 6">暂无存款数据</td>
                   </tr>
                 </tbody>
               </table>
@@ -948,6 +948,7 @@ import indDetail from "../common/indDetail";
 import fundDetail from "../common/fundDetail";
 import changeLog from "../common/changeLog";
 import market from "../common/market";
+import assetPie from "../common/assetPie";
 //防抖
 let timeout = null;
 
@@ -988,6 +989,14 @@ export default {
     indDetail,
     changeLog,
     market,
+    assetPie,
+  },
+  directives: {
+    focus: {
+      inserted: function(el) {
+        el.focus();
+      },
+    },
   },
   data() {
     return {
@@ -1004,16 +1013,17 @@ export default {
       stockDataList: [],
       stockDataListDft: [],
       bankList: [],
+      bankListDft: [],
       editingBankIndex: -1,
       myVar: null,
       myVar1: null,
       rewardShadow: false,
       checked: "wepay",
-      showGains: false,
-      showAmount: false,
-      showCost: false,
-      showCostRate: false,
-      showGSZ: false,
+      showGains: true,
+      showAmount: true,
+      showCost: true,
+      showCostRate: true,
+      showGSZ: true,
       fundList: ["001618"],
       fundListM: [],
       stockListM: [],
@@ -1037,6 +1047,17 @@ export default {
         value: null,
       },
       stockSortTypeObj: {
+        name: null,
+        type: null,
+      },
+      bankSortType: {
+        principal: "none",
+        totalAmount: "none",
+        profit: "none",
+        annualIncome: "none",
+        annualRate: "none",
+      },
+      bankSortTypeObj: {
         name: null,
         type: null,
       },
@@ -1111,9 +1132,9 @@ export default {
         zoom: 1,
       },
       grayscale: {},
-      grayscaleValue: 0,
       opacity: {},
       opacityValue: 0,
+      editingNavCode: null,
       isRefresh: false,
       marketShadow: false,
     };
@@ -1172,25 +1193,25 @@ export default {
       return this.sumAmount(this.stockDataList);
     },
     bankTotalAmount() {
-      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0).toFixed(2);
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0).toFixed(0);
     },
     bankPrincipal() {
-      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.principal) || 0), 0).toFixed(2);
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.principal) || 0), 0).toFixed(0);
     },
     bankAnnualIncome() {
-      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.annualIncome) || 0), 0).toFixed(2);
+      return this.bankList.reduce((sum, item) => sum + (parseFloat(item.annualIncome) || 0), 0).toFixed(0);
     },
     bankGains() {
       let total = parseFloat(this.bankTotalAmount);
       let principal = parseFloat(this.bankPrincipal);
-      let gains = (total - principal).toFixed(2);
-      let rate = principal > 0 ? ((total - principal) / principal * 100).toFixed(2) : '0.00';
+      let gains = (total - principal).toFixed(0);
+      let rate = principal > 0 ? ((total - principal) / principal * 100).toFixed(1) : '0.00';
       return [gains, rate];
     },
     allAmount() {
       let holdingAmount = parseFloat(this.sumAmount(this.allHoldingList)) || 0;
       let bankAmount = parseFloat(this.bankTotalAmount) || 0;
-      return (holdingAmount + bankAmount).toFixed(2);
+      return (holdingAmount + bankAmount).toFixed(0);
     },
     fundGains() {
       return this.sumGains(this.dataList);
@@ -1209,6 +1230,24 @@ export default {
     },
     allCostGains() {
       return this.sumCostGains(this.allHoldingList);
+    },
+    pieChartData() {
+      const data = [];
+      const fundAmount = parseFloat(this.fundAmount) || 0;
+      const freeAmount = parseFloat(this.freeAmount) || 0;
+      const safeAmount = parseFloat(this.safeAmount) || 0;
+      const stockAmount = parseFloat(this.stockAmount) || 0;
+      const bankAmount = parseFloat(this.bankTotalAmount) || 0;
+
+      const otherFundAmount = fundAmount - freeAmount - safeAmount;
+
+      if (freeAmount > 0.01) data.push({ name: '财务自由', value: freeAmount });
+      if (safeAmount > 0.01) data.push({ name: '财务安全', value: safeAmount });
+      if (otherFundAmount > 0.01) data.push({ name: '其他基金', value: otherFundAmount });
+
+      if (stockAmount > 0.01) data.push({ name: '股票', value: stockAmount });
+      if (bankAmount > 0.01) data.push({ name: '存款', value: bankAmount });
+      return data;
     },
     containerClass() {
       let className = "";
@@ -1356,7 +1395,7 @@ export default {
       list.forEach((val) => {
         totalAmount += parseFloat(val.amount || 0);
       });
-      return totalAmount.toFixed(2);
+      return totalAmount.toFixed(0);
     },
     sumGains(list) {
       let allGains = 0;
@@ -1365,8 +1404,8 @@ export default {
         allGains += parseFloat(val.gains || 0);
         allNum += parseFloat(val.amount || 0);
       });
-      allGains = allGains.toFixed(2);
-      let allGainsRate = allNum ? ((allGains * 100) / allNum).toFixed(2) : NaN;
+      allGains = allGains.toFixed(0);
+      let allGainsRate = allNum ? ((allGains * 100) / allNum).toFixed(1) : NaN;
       return [allGains, allGainsRate];
     },
     sumCostGains(list) {
@@ -1376,9 +1415,9 @@ export default {
         allCostGains += parseFloat(val.costGains || 0);
         allNum += parseFloat(val.amount || 0);
       });
-      allCostGains = allCostGains.toFixed(2);
+      allCostGains = allCostGains.toFixed(0);
       const denominator = allNum - allCostGains;
-      let allCostGainsRate = denominator ? ((allCostGains * 100) / denominator).toFixed(2) : NaN;
+      let allCostGainsRate = denominator ? ((allCostGains * 100) / denominator).toFixed(1) : NaN;
       return [allCostGains, allCostGainsRate];
     },
     toNullableNumber(value) {
@@ -1509,6 +1548,7 @@ export default {
         cost: this.toNullableNumber(
           source.cost ?? source.costPrice ?? source.avgCost ?? source.price
         ) || 0,
+        accountType: source.accountType || '',
       };
     },
     formatStockPrice(value) {
@@ -1545,21 +1585,21 @@ export default {
         return 0;
       }
 
-      return ((latestPrice - prevClose) * num).toFixed(2);
+      return ((latestPrice - prevClose) * num).toFixed(0);
     },
     calculateStockCostGain(latestPrice, cost, num) {
       if (cost === null || cost === undefined || cost === "") {
         return 0;
       }
 
-      return ((latestPrice - cost) * num).toFixed(2);
+      return ((latestPrice - cost) * num).toFixed(0);
     },
     calculateStockCostGainRate(latestPrice, cost) {
       if (!cost) {
         return 0;
       }
 
-      return (((latestPrice - cost) / cost) * 100).toFixed(2);
+      return (((latestPrice - cost) / cost) * 100).toFixed(1);
     },
     refresh() {
       this.init();
@@ -1593,6 +1633,7 @@ export default {
         [
           "RealtimeFundcode",
           "RealtimeIndcode",
+          "showNum",
           "showAmount",
           "showGains",
           "fundList",
@@ -1612,8 +1653,9 @@ export default {
           "sortTypeObj",
           "fundListGroup",
           "stockSortTypeObj",
-          "stockListM",
+          "bankSortTypeObj",
           "bankList",
+          "stockListM",
         ],
         (res) => {
           if (chrome.runtime.lastError) {
@@ -1648,6 +1690,7 @@ export default {
               .map((item) => this.normalizeStockItem(item))
               .filter(Boolean);
             this.bankList = res.bankList || [];
+            this.bankListDft = [...this.bankList];
             if (res.userId) {
               this.userId = res.userId;
             } else {
@@ -1659,20 +1702,51 @@ export default {
             this.darkMode = res.darkMode ? res.darkMode : false;
             this.normalFontSize = res.normalFontSize ? res.normalFontSize : false;
             this.seciList = res.seciList ? res.seciList : this.seciList;
-            this.showAmount = res.showAmount ? res.showAmount : false;
-            this.showGains = res.showGains ? res.showGains : false;
+            if (res.showNum) {
+              // 解决版本遗留问题，拆分属性
+              chrome.storage.sync.set({ showNum: false });
+              chrome.storage.sync.set({ showAmount: true });
+              chrome.storage.sync.set({ showGains: true });
+              this.showAmount = true;
+              this.showGains = true;
+            } else {
+              this.showAmount = res.showAmount !== undefined ? res.showAmount : true;
+              this.showGains = res.showGains !== undefined ? res.showGains : true;
+            }
             this.RealtimeFundcode = res.RealtimeFundcode;
             this.RealtimeIndcode = res.RealtimeIndcode;
             this.isLiveUpdate = res.isLiveUpdate ? res.isLiveUpdate : false;
-            this.showCost = res.showCost ? res.showCost : false;
-            this.showCostRate = res.showCostRate ? res.showCostRate : false;
-            this.showGSZ = res.showGSZ ? res.showGSZ : false;
+            this.showCost = res.showCost !== undefined ? res.showCost : true;
+            this.showCostRate = res.showCostRate !== undefined ? res.showCostRate : true;
+            this.showGSZ = res.showGSZ !== undefined ? res.showGSZ : true;
             this.BadgeContent = res.BadgeContent ? res.BadgeContent : 1;
             this.showBadge = res.showBadge ? res.showBadge : 1;
             this.grayscaleValue = res.grayscaleValue ? res.grayscaleValue : 0;
             this.opacityValue = res.opacityValue ? res.opacityValue : 0;
             this.sortTypeObj = res.sortTypeObj ? res.sortTypeObj : {};
             this.stockSortTypeObj = res.stockSortTypeObj ? res.stockSortTypeObj : {};
+            this.bankSortTypeObj = res.bankSortTypeObj ? res.bankSortTypeObj : {};
+            
+            if (this.bankSortTypeObj.type && this.bankSortTypeObj.type != "none") {
+              this.bankSortType[this.bankSortTypeObj.name] = this.bankSortTypeObj.type;
+              this.bankList = [...this.bankListDft].sort((a, b) => {
+                let valA = 0;
+                let valB = 0;
+                const type = this.bankSortTypeObj.name;
+                if (type === 'profit') {
+                  valA = (parseFloat(a.totalAmount) || 0) - (parseFloat(a.principal) || 0);
+                  valB = (parseFloat(b.totalAmount) || 0) - (parseFloat(b.principal) || 0);
+                } else {
+                  valA = parseFloat(a[type]) || 0;
+                  valB = parseFloat(b[type]) || 0;
+                }
+                if (this.bankSortTypeObj.type === 'asc') {
+                  return valA - valB;
+                } else {
+                  return valB - valA;
+                }
+              });
+            }
           } catch (e) {
             console.error("init storage callback error:", e);
           }
@@ -1868,6 +1942,47 @@ export default {
         stockSortTypeObj: this.stockSortTypeObj,
       });
     },
+    sortBankList(type) {
+      for (const key in this.bankSortType) {
+        if (this.bankSortType.hasOwnProperty(key) && key != type) {
+          this.bankSortType[key] = "none";
+        }
+      }
+      this.bankSortType[type] =
+        this.bankSortType[type] == "desc"
+          ? "asc"
+          : this.bankSortType[type] == "asc"
+          ? "none"
+          : "desc";
+      
+      if (this.bankSortType[type] == "none") {
+        this.bankList = [...this.bankListDft];
+      } else {
+        this.bankList = [...this.bankList].sort((a, b) => {
+          let valA = 0;
+          let valB = 0;
+          if (type === 'profit') {
+            valA = (parseFloat(a.totalAmount) || 0) - (parseFloat(a.principal) || 0);
+            valB = (parseFloat(b.totalAmount) || 0) - (parseFloat(b.principal) || 0);
+          } else {
+            valA = parseFloat(a[type]) || 0;
+            valB = parseFloat(b[type]) || 0;
+          }
+          if (this.bankSortType[type] === 'asc') {
+            return valA - valB;
+          } else {
+            return valB - valA;
+          }
+        });
+      }
+      this.bankSortTypeObj = {
+        name: type,
+        type: this.bankSortType[type],
+      };
+      chrome.storage.sync.set({
+        bankSortTypeObj: this.bankSortTypeObj,
+      });
+    },
     compare(property, type) {
       return function(obj1, obj2) {
         const normalizeSortValue = (value) => {
@@ -1989,7 +2104,7 @@ export default {
             const changeRate =
               this.toNullableNumber(quote.f3) ??
               (prevClose
-                ? (((displayPrice - prevClose) / prevClose) * 100).toFixed(2)
+                ? (((displayPrice - prevClose) / prevClose) * 100).toFixed(1)
                 : 0);
             const num = this.toNullableNumber(item.num) || 0;
             const cost = this.toNullableNumber(item.cost) || 0;
@@ -2002,10 +2117,11 @@ export default {
               latestPriceValue: displayPrice,
               dwjz: prevClose,
               gsz: displayPrice,
-              gszzl: Number(changeRate).toFixed(2),
+              gszzl: Number(changeRate).toFixed(1),
               gztime: quote.f124 || null,
               num,
               cost,
+              accountType: item.accountType || '',
               amount: this.calculateMoney({ dwjz: displayPrice, num }),
               gains: this.calculateStockDailyGain(displayPrice, prevClose, num),
               costGains: this.calculateStockCostGain(displayPrice, cost, num),
@@ -2268,24 +2384,24 @@ export default {
       if (val.dwjz === null || val.dwjz === undefined) {
         return 0;
       }
-      let sum = (val.dwjz * val.num).toFixed(2);
+      let sum = (val.dwjz * val.num).toFixed(0);
       return sum;
     },
     calculate(val, hasReplace) {
       var sum = 0;
       let num = val.num ? val.num : 0;
       if (hasReplace) {
-        sum = ((val.dwjz - val.dwjz / (1 + val.gszzl * 0.01)) * num).toFixed(2);
+        sum = ((val.dwjz - val.dwjz / (1 + val.gszzl * 0.01)) * num).toFixed(0);
       } else {
         if (val.gsz != null) {
-          sum = ((val.gsz - val.dwjz) * num).toFixed(2);
+          sum = ((val.gsz - val.dwjz) * num).toFixed(0);
         }
       }
       return sum;
     },
     calculateCost(val) {
       if (val.cost) {
-        let sum = ((val.dwjz - val.cost) * val.num).toFixed(2);
+        let sum = ((val.dwjz - val.cost) * val.num).toFixed(0);
         return sum;
       } else {
         return 0;
@@ -2293,7 +2409,7 @@ export default {
     },
     calculateCostRate(val) {
       if (val.cost && val.cost != 0) {
-        let sum = (((val.dwjz - val.cost) / val.cost) * 100).toFixed(2);
+        let sum = (((val.dwjz - val.cost) / val.cost) * 100).toFixed(1);
         return sum;
       } else {
         return 0;
@@ -2417,6 +2533,28 @@ export default {
         }
       );
     },
+    editNav(el) {
+      if (el.isPrivate) {
+        this.editingNavCode = el.fundcode;
+      }
+    },
+    saveNav(el) {
+      this.editingNavCode = null;
+      // 更新 fundListM 中的 nav
+      this.fundListM = this.fundListM.map(item => {
+        if (item.code === el.fundcode) {
+          return { ...item, nav: el.gsz };
+        }
+        return item;
+      });
+      // 持久化到 local 存储
+      chrome.storage.local.set({ fundListM: this.fundListM });
+      // 重新计算收益
+      el.dwjz = el.gsz;
+      el.amount = this.calculateMoney(el);
+      el.costGains = this.calculateCost(el);
+      el.costGainsRate = this.calculateCostRate(el);
+    },
     dblclickBank(index) {
       this.editingBankIndex = index;
     },
@@ -2508,35 +2646,35 @@ export default {
     },
   },
 };
+
 </script>
 
 <style lang="scss" scoped>
 .container {
-  --sun-surface: rgba(255, 255, 255, 0.86);
-  --sun-surface-strong: rgba(255, 252, 246, 0.96);
-  --sun-border: rgba(226, 198, 146, 0.42);
-  --sun-shadow: 0 18px 40px rgba(201, 157, 77, 0.16);
-  --sun-shadow-soft: 0 10px 24px rgba(201, 157, 77, 0.12);
-  --sun-text: #4f4334;
-  --sun-muted: #8d7a60;
-  min-width: 620px;
+  --c-bg: #f7f8fa;
+  --c-surface: #ffffff;
+  --c-border: #e8eaed;
+  --c-text: #1f2937;
+  --c-text-secondary: #6b7280;
+  --c-accent: #3b82f6;
+  --c-accent-light: #eff6ff;
+  --c-up: #ef4444;
+  --c-down: #22c55e;
+  min-width: 720px;
   min-height: 680px;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 16px 14px 18px;
+  padding: 12px;
   box-sizing: border-box;
   position: relative;
   font-size: 12px;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-  color: var(--sun-text);
-  background:
-    radial-gradient(circle at top left, rgba(255, 213, 111, 0.28), transparent 24%),
-    radial-gradient(circle at top right, rgba(130, 208, 255, 0.22), transparent 28%),
-    linear-gradient(180deg, #fffdf8 0%, #fff8ee 52%, #fff5ea 100%);
-  border: 1px solid rgba(232, 211, 177, 0.78);
-  border-radius: 24px;
-  box-shadow: 0 22px 48px rgba(168, 131, 58, 0.18);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  color: var(--c-text);
+  background: var(--c-bg);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .refresh {
@@ -2555,15 +2693,14 @@ export default {
 }
 
 .holdings-tabs-wrap {
-  margin-top: 16px;
+  margin-top: 8px;
   min-height: 420px;
   min-width: 0;
-  padding: 12px 14px 16px;
-  border-radius: 22px;
-  border: 1px solid var(--sun-border);
-  background: var(--sun-surface);
-  box-shadow: var(--sun-shadow-soft);
-  backdrop-filter: blur(10px);
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .page-tabs {
@@ -2574,7 +2711,7 @@ export default {
 .home-pane {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 4px;
 }
 
 .stock-table-row {
@@ -2599,16 +2736,15 @@ export default {
 }
 
 .more-width {
-  min-width: 1040px;
+  /* no min-width, table handles its own scroll */
 }
 
 .stock-more-width {
-  min-width: 1040px;
+  /* no min-width, table handles its own scroll */
 }
 
 .changelog-container {
   min-height: 575px;
-  min-width: 605px;
 }
 
 .table-more-height {
@@ -2619,20 +2755,12 @@ export default {
 }
 
 .container {
-  &.num-width-1 {
-    min-width: 620px;
-  }
-  &.num-width-2 {
-    min-width: 695px;
-  }
-  &.num-width-3 {
-    min-width: 770px;
-  }
-  &.num-width-4 {
-    min-width: 850px;
-  }
+  &.num-width-1,
+  &.num-width-2,
+  &.num-width-3,
+  &.num-width-4,
   &.num-width-5 {
-    min-width: 930px;
+    /* removed fixed min-widths to prevent horizontal scroll */
   }
 }
 
@@ -2641,6 +2769,7 @@ export default {
   max-height: 520px;
   position: relative;
   overflow-y: auto;
+  overflow-x: auto;
   padding-top: 6px;
 }
 
@@ -2670,10 +2799,10 @@ table {
   border-collapse: separate;
   border-spacing: 0;
   text-align: right;
-  overflow: hidden;
-  border-radius: 18px;
-  background: var(--sun-surface-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  background: var(--c-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--c-border);
 }
 .align-left {
   text-align: left;
@@ -2684,39 +2813,48 @@ table {
 }
 
 table th {
-  padding: 12px 10px;
+  padding: 8px 10px;
   white-space: nowrap;
-  color: #6c5a44;
-  font-weight: 700;
+  color: var(--c-text-secondary);
+  font-weight: 600;
+  font-size: 11px;
 }
 
 thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: linear-gradient(180deg, #fffdf8 0%, #fff1dc 100%);
-  box-shadow: 0 1px 0 rgba(223, 198, 162, 0.95);
+  z-index: 10;
+  background: #f9fafb;
+  box-shadow: 0 1px 0 var(--c-border);
+}
+
+thead th:first-child {
+  border-top-left-radius: 8px;
+}
+
+thead th:last-child {
+  border-top-right-radius: 8px;
 }
 
 table td {
-  padding: 10px 10px 9px;
+  padding: 8px 10px;
   white-space: nowrap;
-  color: var(--sun-text);
-  border-bottom: 1px solid rgba(244, 234, 218, 0.95);
+  color: var(--c-text);
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .up {
-  color: #f56c6c;
+  color: var(--c-up);
   font-weight: bold;
 }
 
 .down {
-  color: #4eb61b;
+  color: var(--c-down);
   font-weight: bold;
 }
 
 tbody tr:hover {
-  background: linear-gradient(90deg, rgba(255, 244, 220, 0.74), rgba(255, 251, 243, 0.96));
+  background: #f9fafb;
 }
 
 tbody tr:last-child td,
@@ -2728,21 +2866,21 @@ tbody tr:last-child th {
   display: inline-block;
   line-height: 1;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px 12px;
-  border-radius: 12px;
+  background: var(--c-surface);
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
-  color: var(--sun-text);
+  color: var(--c-text);
   margin: 0 4px;
   outline: none;
-  border: 1px solid rgba(225, 202, 164, 0.84);
-  box-shadow: 0 6px 14px rgba(201, 157, 77, 0.1);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  border: 1px solid var(--c-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(201, 157, 77, 0.14);
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .btn.edit {
@@ -2760,23 +2898,23 @@ tbody tr:last-child th {
 }
 
 .btn-up {
-  color: #f56c6c;
-  border-color: #f56c6c;
-  background: linear-gradient(180deg, #fff9f9 0%, #ffe8e8 100%);
+  color: var(--c-up);
+  border-color: rgba(239, 68, 68, 0.3);
+  background: #fef2f2;
   font-weight: bold;
 }
 
 .btn-down {
-  color: #4eb61b;
-  border-color: #4eb61b;
-  background: linear-gradient(180deg, #fbfff7 0%, #effbdd 100%);
+  color: var(--c-down);
+  border-color: rgba(34, 197, 94, 0.3);
+  background: #f0fdf4;
   font-weight: bold;
 }
 
 .btn-total-amount {
-  color: #c75b5b;
-  border-color: #f0b3b3;
-  background-color: #fde9e9;
+  color: var(--c-up);
+  border-color: rgba(239, 68, 68, 0.3);
+  background-color: #fef2f2;
   font-weight: bold;
 }
 
@@ -2792,20 +2930,19 @@ tbody tr:last-child th {
 }
 
 .summary-panel {
-  margin: 10px 0 4px;
-  padding: 10px;
-  border-radius: 18px;
-  border: 1px solid var(--sun-border);
-  background: var(--sun-surface);
-  box-shadow: var(--sun-shadow);
-  backdrop-filter: blur(10px);
+  margin: 8px 0 4px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .summary-row {
-  margin-top: 8px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .summary-row:first-child {
@@ -2842,7 +2979,7 @@ tbody tr:last-child th {
   justify-content: center;
   width: 14px;
   flex-shrink: 0;
-  color: rgba(201, 157, 77, 0.55);
+  color: #d1d5db;
   font-size: 14px;
   line-height: 1;
   user-select: none;
@@ -2868,7 +3005,7 @@ tbody tr:last-child th {
 }
 
 .summary-row-home {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* flex inherited from .summary-row */
 }
 
 .tab-summary-panel {
@@ -2877,7 +3014,156 @@ tbody tr:last-child th {
 }
 
 .tab-summary-row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* flex inherited from .summary-row */
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 4px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+
+.summary-table thead th {
+  padding: 6px 12px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--c-text-secondary);
+  background: #f9fafb;
+  border-bottom: 1px solid var(--c-border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.summary-table thead th:first-child {
+  text-align: left;
+}
+
+.summary-table tbody td {
+  padding: 5px 12px;
+  text-align: right;
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.summary-table tbody td:first-child {
+  text-align: left;
+  color: var(--c-text-secondary);
+  font-weight: 600;
+}
+
+.summary-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.summary-table-total td {
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  background: #f9fafb;
+}
+
+/* === Tree view rows === */
+.tree-root-node {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--c-text);
+}
+
+.tree-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.tree-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Level-1 rows: draw vertical connector from total row down */
+.tree-level-1 td:first-child {
+  padding-left: 10px;
+  position: relative;
+}
+
+.tree-level-1 td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--c-border);
+}
+
+.tree-level-1 td:first-child::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--c-border);
+}
+
+.tree-level-1.tree-last td:first-child::before {
+  bottom: 50%;
+}
+
+/* Level-2 rows (sub-rows under fund) */
+.tree-level-2 td:first-child {
+  padding-left: 28px;
+  position: relative;
+}
+
+.tree-level-2 td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 36px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--c-border);
+  opacity: 0.7;
+}
+
+.tree-level-2 td:first-child::after {
+  content: '';
+  position: absolute;
+  left: 36px;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--c-border);
+  opacity: 0.7;
+}
+
+.tree-level-2.tree-last td:first-child::before {
+  bottom: 50%;
+}
+
+.summary-table-sub td {
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+
+.summary-table .pct {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 2px;
 }
 
 .summary-row .btn {
@@ -2894,30 +3180,40 @@ tbody tr:last-child th {
 .summary-card {
   min-width: 0;
   min-height: 0;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(225, 202, 164, 0.84);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 6px 14px rgba(201, 157, 77, 0.08);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  box-shadow: none;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
   text-align: left;
+  flex: 1;
 }
 
 .summary-card-compact {
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: baseline;
-  gap: 6px;
   padding: 5px 10px;
   overflow: hidden;
 }
 
 .summary-card-compact .summary-label {
   white-space: nowrap;
+  font-size: 11px;
   flex-shrink: 0;
+}
+
+.summary-card-compact .summary-value {
+  font-size: 14px;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.summary-card-compact .summary-meta {
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0.7;
 }
 
 .summary-card-soft {
@@ -2925,34 +3221,36 @@ tbody tr:last-child th {
 }
 
 .summary-card-green {
-  border-color: rgba(92, 180, 46, 0.88);
-  background: linear-gradient(180deg, rgba(248, 255, 242, 0.96) 0%, rgba(238, 251, 221, 0.94) 100%);
-  color: #43a61d;
+  border-color: rgba(34, 197, 94, 0.25);
+  background: #f0fdf4;
+  color: #16a34a;
+  .summary-value, .summary-meta { color: inherit; }
 }
 
 .summary-card-red {
-  border-color: rgba(245, 108, 108, 0.72);
-  background: linear-gradient(180deg, rgba(255, 249, 249, 0.96) 0%, rgba(255, 236, 236, 0.94) 100%);
-  color: #de6d6d;
+  border-color: rgba(239, 68, 68, 0.25);
+  background: #fef2f2;
+  color: #dc2626;
+  .summary-value, .summary-meta { color: inherit; }
 }
 
 .summary-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--c-text-secondary);
 }
 
 .summary-value {
-  font-size: 15px;
-  line-height: 1.1;
+  font-size: 14px;
+  line-height: 1.2;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .summary-meta {
-  font-size: 11px;
-  font-weight: 600;
-  opacity: 0.9;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--c-text-secondary);
 }
 
 .action-row {
@@ -2965,15 +3263,15 @@ tbody tr:last-child th {
 
 .action-row .btn {
   margin: 0;
-  min-width: 86px;
-  border-radius: 999px;
-  padding: 9px 14px;
+  min-width: 80px;
+  border-radius: 6px;
+  padding: 8px 14px;
 }
 
 .market-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   margin: 0;
   padding: 0;
 }
@@ -2981,24 +3279,31 @@ tbody tr:last-child th {
 .market-overview .tab-col {
   min-width: 0;
   margin: 0;
-  padding: 14px 12px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--sun-border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 248, 235, 0.9) 100%);
-  box-shadow: var(--sun-shadow-soft);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .market-overview .tab-col h5 {
-  margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #6d5a43;
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .market-overview .tab-col p {
-  margin: 4px 0;
-  font-size: 13px;
-  font-weight: 700;
+  margin: 1px 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gear-input-row {
   display: flex;
@@ -3019,33 +3324,48 @@ tbody tr:last-child th {
 }
 
 ::v-deep .page-tabs > .el-tabs__header {
-  background: rgba(255, 249, 239, 0.9);
-  border: 1px solid rgba(232, 210, 179, 0.72);
-  border-radius: 18px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  padding: 6px;
-  margin-bottom: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 3px;
+  margin-bottom: 10px;
+}
+
+::v-deep .page-tabs > .el-tabs__header .el-tabs__nav-wrap {
+  overflow: visible;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__nav-wrap::after {
   display: none;
 }
 
+::v-deep .page-tabs > .el-tabs__header .el-tabs__nav-scroll {
+  overflow: visible;
+}
+
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__nav {
   display: flex;
   flex-direction: row;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 3px;
+  float: none;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__item {
   width: auto;
   min-width: 0;
-  height: 36px;
-  line-height: 36px;
+  height: 26px;
+  line-height: 26px;
   text-align: center;
-  padding: 0 14px;
-  font-size: 13px;
-  border-radius: 12px;
+  padding: 0 8px;
+  font-size: 12px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--c-text-secondary);
+  font-weight: 500;
+  float: none;
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__active-bar {
@@ -3053,8 +3373,10 @@ tbody tr:last-child th {
 }
 
 ::v-deep .page-tabs > .el-tabs__header .el-tabs__item.is-active {
-  background: rgba(240, 196, 100, 0.25);
-  border-radius: 12px;
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+  font-weight: 600;
+  border-radius: 6px;
 }
 
 ::v-deep .page-tabs > .el-tabs__content {
@@ -3065,23 +3387,23 @@ tbody tr:last-child th {
 ::v-deep .el-tabs__item {
   height: 34px;
   line-height: 34px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #8a7457;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-secondary);
 }
 
 ::v-deep .el-tabs__item.is-active {
-  color: #d08c1f;
+  color: var(--c-accent);
 }
 
 ::v-deep .el-tabs__active-bar {
-  height: 3px;
+  height: 2px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #f6bf53 0%, #ee9f55 100%);
+  background: var(--c-accent);
 }
 
 ::v-deep .el-tabs__nav-wrap::after {
-  background-color: rgba(232, 210, 179, 0.9);
+  background-color: var(--c-border);
 }
 
 ::v-deep .el-tabs__content {
@@ -3090,9 +3412,9 @@ tbody tr:last-child th {
 
 .btn-subtotal {
   border-style: dashed;
-  color: #c75b5b;
-  border-color: #f0b3b3;
-  background-color: #fde9e9;
+  color: var(--c-up);
+  border-color: rgba(239, 68, 68, 0.3);
+  background-color: #fef2f2;
   font-weight: bold;
 }
 
@@ -3148,13 +3470,14 @@ tbody tr:last-child th {
 .tips {
   font-size: 12px;
   margin: 0;
-  color: var(--sun-muted);
+  color: var(--c-text-secondary);
   line-height: 1.4;
   padding: 6px 15px;
 }
 
+
 .fundName {
-  max-width: 180px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3163,14 +3486,14 @@ tbody tr:last-child th {
 }
 
 .fundName-noclick {
-  max-width: 180px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fundName:hover {
-  color: #d08c1f;
+  color: var(--c-accent);
 }
 
 .stockNameCell {
@@ -3219,26 +3542,17 @@ tbody tr:last-child th {
 
 //标准字号
 .normalFontSize {
-  min-width: 500px;
   font-size: 14px;
-  &.num-width-1 {
-    min-width: 550px;
-  }
-  &.num-width-2 {
-    min-width: 640px;
-  }
-  &.num-width-3 {
-    min-width: 695px;
-  }
-  &.num-width-4 {
-    min-width: 760px;
-  }
+  &.num-width-1,
+  &.num-width-2,
+  &.num-width-3,
+  &.num-width-4,
   &.num-width-5 {
-    min-width: 825px;
+    /* removed fixed min-widths */
   }
 
   &.stock-more-width {
-    min-width: 865px;
+    /* removed fixed min-width */
   }
 
   .btn,
@@ -3254,7 +3568,6 @@ tbody tr:last-child th {
 
 .detail-container {
   min-height: 720px;
-  min-width: 670px;
 }
 
 .detailTable {
@@ -3269,147 +3582,192 @@ tbody tr:last-child th {
 
 //暗黑主题
 .container.darkMode {
-  color: rgba($color: #ffffff, $alpha: 0.6);
-  background-color: #121212;
+  --c-bg: #0f1117;
+  --c-surface: #1a1d27;
+  --c-border: rgba(255, 255, 255, 0.1);
+  --c-text: rgba(255, 255, 255, 0.87);
+  --c-text-secondary: rgba(255, 255, 255, 0.5);
+  --c-accent: #60a5fa;
+  --c-accent-light: rgba(96, 165, 250, 0.12);
+  --c-up: #f87171;
+  --c-down: #4ade80;
+  color: var(--c-text);
+  background-color: var(--c-bg);
   background-image: none;
-  border-color: rgba($color: #ffffff, $alpha: 0.08);
+  border-color: var(--c-border);
   box-shadow: none;
   thead th {
-    background-color: #1e1e1e;
+    background-color: #1e2130;
     background-image: none;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
-    color: rgba($color: #ffffff, $alpha: 0.5);
+    box-shadow: 0 1px 0 var(--c-border);
+    color: var(--c-text-secondary);
   }
   .summary-panel {
-    background: rgba($color: #ffffff, $alpha: 0.06);
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+    background: var(--c-surface);
+    border-color: var(--c-border);
     box-shadow: none;
   }
   .summary-card {
-    background: rgba($color: #ffffff, $alpha: 0.08);
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--c-border);
     box-shadow: none;
   }
   .summary-card-green {
-    color: #79d85f;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.08);
+    border-color: rgba(74, 222, 128, 0.2);
   }
   .summary-card-red {
-    color: #ff9b9b;
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+    border-color: rgba(248, 113, 113, 0.2);
   }
-  .holdings-tabs-wrap,
+  .summary-table {
+    background: var(--c-surface);
+    border-color: var(--c-border);
+  }
+  .summary-table thead th {
+    background: #1e2130;
+    color: var(--c-text-secondary);
+    border-bottom-color: var(--c-border);
+  }
+  .summary-table tbody td {
+    color: var(--c-text);
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+  .summary-table tbody td:first-child {
+    color: var(--c-text-secondary);
+  }
+  .summary-table-total td {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .holdings-tabs-wrap {
+    background: transparent;
+  }
   .market-overview .tab-col {
-    background: rgba($color: #ffffff, $alpha: 0.06);
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+    background: var(--c-surface);
+    border-color: var(--c-border);
     box-shadow: none;
   }
   ::v-deep .page-tabs > .el-tabs__header {
-    background: rgba($color: #ffffff, $alpha: 0.06);
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.08);
+    background: var(--c-surface);
+    border-color: var(--c-border);
+  }
+  ::v-deep .page-tabs > .el-tabs__header .el-tabs__item.is-active {
+    background: var(--c-accent-light);
+    color: var(--c-accent);
   }
   .refresh {
-    color: rgba($color: #409eff, $alpha: 0.6);
+    color: var(--c-accent);
   }
   .btn {
-    background-color: rgba($color: #ffffff, $alpha: 0.16);
-    color: rgba($color: #ffffff, $alpha: 0.6);
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.6);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--c-text);
+    border-color: var(--c-border);
+  }
+  .btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
   }
   .primary {
-    border: 1px solid rgba($color: #409eff, $alpha: 0.6);
-    background-color: rgba($color: #409eff, $alpha: 0.6);
+    border-color: var(--c-accent);
+    background-color: rgba(96, 165, 250, 0.2);
+    color: var(--c-accent);
   }
   .action-row .btn {
-    background-color: rgba($color: #ffffff, $alpha: 0.12);
+    background-color: rgba(255, 255, 255, 0.08);
   }
   ::v-deep .el-input__inner {
-    background-color: rgba($color: #ffffff, $alpha: 0.16);
-    color: rgba($color: #ffffff, $alpha: 0.6);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--c-text);
+    border-color: var(--c-border);
   }
   ::v-deep .el-select__input {
-    color: rgba($color: #ffffff, $alpha: 0.6);
+    color: var(--c-text);
   }
 
   ::v-deep tbody tr:hover {
-    background: rgba($color: #ffffff, $alpha: 0.08) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
   }
 
   tbody tr:hover {
-    background: rgba($color: #ffffff, $alpha: 0.08) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
   }
 
   .slt {
-    border: 1px solid rgba($color: #67c23a, $alpha: 0.6);
-    background-color: rgba($color: #67c23a, $alpha: 0.6);
+    border-color: rgba(74, 222, 128, 0.5);
+    background-color: rgba(74, 222, 128, 0.2);
   }
 
   .btn.red {
-    border: 1px solid rgba($color: #f56c6c, $alpha: 0.6);
-    background-color: rgba($color: #f56c6c, $alpha: 0.6);
+    border-color: rgba(248, 113, 113, 0.5);
+    background-color: rgba(248, 113, 113, 0.2);
   }
 
   .btn-up {
-    border: 1px solid rgba($color: #f56c6c, $alpha: 0.6);
-    background-color: rgba($color: #f56c6c, $alpha: 0.6);
+    border-color: rgba(248, 113, 113, 0.4);
+    background-color: rgba(248, 113, 113, 0.12);
   }
 
   .btn-down {
-    border: 1px solid rgba($color: #4eb61b, $alpha: 0.6);
-    background-color: rgba($color: #4eb61b, $alpha: 0.6);
+    border-color: rgba(74, 222, 128, 0.4);
+    background-color: rgba(74, 222, 128, 0.12);
   }
 
   .btn-total-amount {
-    color: rgba($color: #ffd4d4, $alpha: 0.95);
-    border: 1px solid rgba($color: #f0b3b3, $alpha: 0.6);
-    background-color: rgba($color: #c75b5b, $alpha: 0.26);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.4);
+    background-color: rgba(248, 113, 113, 0.12);
   }
 
   .btn-subtotal {
-    color: rgba($color: #ffd4d4, $alpha: 0.95);
-    border: 1px solid rgba($color: #f0b3b3, $alpha: 0.6);
-    background-color: rgba($color: #c75b5b, $alpha: 0.26);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.4);
+    background-color: rgba(248, 113, 113, 0.12);
   }
 
   .tab-col {
-    background-color: rgba($color: #ffffff, $alpha: 0.09);
-    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
   }
 
   table {
-    background-color: rgba($color: #ffffff, $alpha: 0.12);
-    border-radius: 5px;
+    background-color: var(--c-surface);
+    border-color: var(--c-border);
+    border-radius: 8px;
   }
 
-  table td {
-    border-bottom-color: rgba($color: #ffffff, $alpha: 0.06);
-    color: rgba($color: #ffffff, $alpha: 0.6);
-  }
-
-  .up {
-    color: #f56c6c;
-  }
-
-  .down {
-    color: #4eb61b;
+  table {
+    margin: 0 auto;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: right;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--c-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    /* 让sticky表头在圆角下不被遮挡 */
+    overflow: visible;
   }
 
   table th {
-    color: rgba($color: #ffffff, $alpha: 0.5);
+    color: var(--c-text-secondary);
   }
 
   ::v-deep .el-tabs__item {
-    color: rgba($color: #ffffff, $alpha: 0.5);
+    color: var(--c-text-secondary);
   }
 
   ::v-deep .el-tabs__item.is-active {
-    color: rgba($color: #ffd37b, $alpha: 0.92);
+    color: var(--c-accent);
   }
 
   ::v-deep .el-tabs__active-bar {
-    background: linear-gradient(90deg, rgba(255, 209, 112, 0.9), rgba(255, 160, 122, 0.88));
+    background: var(--c-accent);
   }
 
   ::v-deep .el-tabs__nav-wrap::after {
-    background-color: rgba($color: #ffffff, $alpha: 0.08);
+    background-color: var(--c-border);
   }
 
   ::placeholder {
@@ -3417,55 +3775,69 @@ tbody tr:last-child th {
   }
 
   ::v-deep .el-select .el-input.is-focus .el-input__inner {
-    border-color: rgba($color: #409eff, $alpha: 0.6);
+    border-color: var(--c-accent);
   }
 
   ::v-deep .el-select .el-tag {
-    background-color: rgba($color: #ffffff, $alpha: 0.14);
-    color: rgba($color: #ffffff, $alpha: 0.6);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--c-text);
   }
 
   ::v-deep .el-select-dropdown {
-    background-color: #383838;
-    border: 1px solid rgba($color: #ffffff, $alpha: 0.38);
+    background-color: #1e2130;
+    border: 1px solid var(--c-border);
     .popper__arrow::after {
-      border-bottom-color: #383838;
+      border-bottom-color: #1e2130;
     }
     .el-scrollbar {
-      background-color: rgba($color: #ffffff, $alpha: 0.16);
+      background-color: rgba(255, 255, 255, 0.06);
     }
     .el-select-dropdown__item {
-      color: rgba($color: #ffffff, $alpha: 0.6);
+      color: var(--c-text);
     }
 
     .el-select-dropdown__item.hover,
     .el-select-dropdown__item:hover {
-      background-color: rgba($color: #ffffff, $alpha: 0.08);
+      background-color: rgba(255, 255, 255, 0.06);
     }
     .el-select-dropdown__item.selected {
-      color: rgba($color: #409eff, $alpha: 0.6);
-      background-color: rgba($color: #ffffff, $alpha: 0.08);
+      color: var(--c-accent);
+      background-color: rgba(255, 255, 255, 0.06);
     }
     .el-select-dropdown__item.selected::after {
-      color: rgba($color: #409eff, $alpha: 0.6);
+      color: var(--c-accent);
     }
   }
 
   ::v-deep .el-switch__label.is-active {
-    color: rgba($color: #409eff, $alpha: 0.87);
+    color: var(--c-accent);
   }
   ::v-deep .el-switch__label {
-    color: rgba($color: #ffffff, $alpha: 0.6);
+    color: var(--c-text-secondary);
   }
 
   ::v-deep .hasReplace-tip {
-    color: rgba($color: #ffffff, $alpha: 0.6);
-    border: 1px solid rgba($color: #409eff, $alpha: 0.6);
-    background-color: rgba($color: #409eff, $alpha: 0.6);
+    color: var(--c-text);
+    border-color: var(--c-accent);
+    background-color: rgba(96, 165, 250, 0.2);
   }
 
   .fundName:hover {
-    color: rgba($color: #ffd37b, $alpha: 0.92);
+    color: var(--c-accent);
   }
+}
+.private-fund-row {
+  background-color: rgba(255, 243, 224, 0.5) !important;
+}
+
+.darkMode .private-fund-row {
+  background-color: rgba(74, 20, 140, 0.3) !important;
+}
+
+.small-input {
+  width: 60px !important;
+  height: 20px !important;
+  padding: 0 4px !important;
+  font-size: 12px !important;
 }
 </style>

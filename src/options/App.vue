@@ -354,11 +354,11 @@ export default {
       configHref: null,
       holiday: null,
       disabled: false,
-      showGSZ: false,
-      showAmount: false,
-      showGains: false,
-      showCost: false,
-      showCostRate: false,
+      showGSZ: true,
+      showAmount: true,
+      showGains: true,
+      showCost: true,
+      showCostRate: true,
       darkMode: false,
       showBadge: 1,
       BadgeContent: 1,
@@ -675,8 +675,8 @@ export default {
               }
             );
           } else {
-            this.showAmount = res.showAmount ? res.showAmount : false;
-            this.showGains = res.showGains ? res.showGains : false;
+            this.showAmount = res.showAmount !== undefined ? res.showAmount : true;
+            this.showGains = res.showGains !== undefined ? res.showGains : true;
           }
 
           if (res.holiday) {
@@ -706,9 +706,9 @@ export default {
           this.stockListM = (res.stockListM || [])
             .map((item) => this.normalizeStockItem(item))
             .filter(Boolean);
-          this.showGSZ = res.showGSZ ? res.showGSZ : false;
-          this.showCost = res.showCost ? res.showCost : false;
-          this.showCostRate = res.showCostRate ? res.showCostRate : false;
+          this.showGSZ = res.showGSZ !== undefined ? res.showGSZ : true;
+          this.showCost = res.showCost !== undefined ? res.showCost : true;
+          this.showCostRate = res.showCostRate !== undefined ? res.showCostRate : true;
           this.darkMode = res.darkMode ? res.darkMode : false;
           this.normalFontSize = res.normalFontSize ? res.normalFontSize : false;
           this.showBadge = res.showBadge ? res.showBadge : 1;
@@ -751,11 +751,38 @@ export default {
       reader.onload = (event) => {
         try {
           let config = JSON.parse(event.target.result);
+          if (config.assetListM) {
+            config.fundListM = config.fundListM || [];
+            config.stockListM = config.stockListM || [];
+            config.assetListM.forEach(item => {
+              if (item.assetType === '股票') {
+                config.stockListM.push(item);
+              } else {
+                config.fundListM.push(item);
+              }
+            });
+            delete config.assetListM;
+          }
+
           let fundListM = null;
           if (config.fundListM) {
             fundListM = config.fundListM;
             delete config.fundListM;
           }
+
+          if (config.cashListM) {
+            config.bankList = config.cashListM.map((item) => {
+              return {
+                bankName: item.bank || item.bankName || "存款",
+                principal: parseFloat(item.principal) || 0,
+                totalAmount: parseFloat(item.total) || parseFloat(item.totalAmount) || parseFloat(item.principal) || 0,
+                annualIncome: parseFloat(item.annualIncome) || 0,
+                annualRate: parseFloat(item.annualRate) || 0,
+              };
+            });
+            delete config.cashListM;
+          }
+
           const doImport = () => {
             chrome.storage.sync.set(config, (val) => {
               this.initOption();

@@ -13,25 +13,25 @@
         <li>
           沪股通 当日净流入 <span
             :class="lastDataList[1] >= 0 ? 'red' : 'green'"
-            >{{ (lastDataList[1] / 10000).toFixed(2) }} 亿元</span
+            >{{ (lastDataList[1] / 10000).toFixed(0) }} 亿元</span
           ><span>，当日余额 </span
           ><span :class="lastDataList[2] >= 0 ? 'red' : 'green'"
-            >{{ (lastDataList[2] / 10000).toFixed(2) }} 亿元</span
+            >{{ (lastDataList[2] / 10000).toFixed(0) }} 亿元</span
           >
         </li>
         <li>
           深股通 当日净流入 <span
             :class="lastDataList[3] >= 0 ? 'red' : 'green'"
-            >{{ (lastDataList[3] / 10000).toFixed(2) }} 亿元</span
+            >{{ (lastDataList[3] / 10000).toFixed(0) }} 亿元</span
           ><span>，当日余额 </span
           ><span :class="lastDataList[4] >= 0 ? 'red' : 'green'"
-            >{{ (lastDataList[4] / 10000).toFixed(2) }} 亿元</span
+            >{{ (lastDataList[4] / 10000).toFixed(0) }} 亿元</span
           >
         </li>
         <li>
           北向资金 当日净流入 <span
             :class="lastDataList[5] >= 0 ? 'red' : 'green'"
-            >{{ (lastDataList[5] / 10000).toFixed(2) }} 亿元</span
+            >{{ (lastDataList[5] / 10000).toFixed(0) }} 亿元</span
           >
         </li>
       </ul>

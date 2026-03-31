@@ -10,7 +10,7 @@
       两市合计成交额：
       <span
         >{{
-          ((turnoverData[0].f6 + turnoverData[1].f6) / 100000000).toFixed(2)
+          ((turnoverData[0].f6 + turnoverData[1].f6) / 100000000).toFixed(0)
         }}亿元
       </span>
       上涨：
