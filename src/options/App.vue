@@ -194,7 +194,7 @@
             <input
               class="btn"
               type="button"
-              value="存款导入导出文本"
+              value="现金导入导出文本"
               @click="openBankConfigBox"
             />
           </div>
@@ -773,7 +773,7 @@ export default {
           if (config.cashListM) {
             config.bankList = config.cashListM.map((item) => {
               return {
-                bankName: item.bank || item.bankName || "存款",
+                bankName: item.bank || item.bankName || "现金",
                 principal: parseFloat(item.principal) || 0,
                 totalAmount: parseFloat(item.total) || parseFloat(item.totalAmount) || parseFloat(item.principal) || 0,
                 annualIncome: parseFloat(item.annualIncome) || 0,

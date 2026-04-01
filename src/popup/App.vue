@@ -196,7 +196,7 @@
                     <td>
                       <span class="tree-node">
                         <span class="tree-dot" style="background:#3b82f6"></span>
-                        存款
+                        现金
                       </span>
                     </td>
                     <td v-if="showAmount">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</td>
@@ -810,19 +810,19 @@
               </table>
             </div>
           </el-tab-pane>
-          <el-tab-pane :label="`存款（${bankList.length}）`" name="bank">
+          <el-tab-pane :label="`现金（${bankList.length}）`" name="bank">
             <div class="summary-panel tab-summary-panel" v-if="showAmount">
               <div class="summary-row tab-summary-row">
                 <div class="summary-card summary-card-compact summary-card-red">
-                  <span class="summary-label">存款总额</span>
+                  <span class="summary-label">现金总额</span>
                   <strong class="summary-value">{{ parseFloat(bankTotalAmount).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
                 <div class="summary-card summary-card-compact summary-card-red">
-                  <span class="summary-label">存款本金</span>
+                  <span class="summary-label">现金本金</span>
                   <strong class="summary-value">{{ parseFloat(bankPrincipal).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                 </div>
                 <div :class="['summary-card summary-card-compact', summaryGainCardClass(bankGains[0])]">
-                  <span class="summary-label">存款收益</span>
+                  <span class="summary-label">现金收益</span>
                   <strong class="summary-value">{{ parseFloat(bankGains[0]).toLocaleString('zh', { maximumFractionDigits: 0 }) }}</strong>
                   <span class="summary-meta">{{ isNaN(bankGains[1]) ? '' : '（' + bankGains[1] + '%）' }}</span>
                 </div>
@@ -870,7 +870,7 @@
                     </template>
                   </tr>
                   <tr v-if="!bankList.length">
-                    <td class="empty-row" :colspan="editingBankIndex >= 0 ? 7 : 6">暂无存款数据</td>
+                    <td class="empty-row" :colspan="editingBankIndex >= 0 ? 7 : 6">暂无现金数据</td>
                   </tr>
                 </tbody>
               </table>
@@ -1279,7 +1279,7 @@ export default {
       if (otherFundAmount > 0.01) data.push({ name: '其他基金', value: otherFundAmount });
 
       if (stockAmount > 0.01) data.push({ name: '股票', value: stockAmount });
-      if (bankAmount > 0.01) data.push({ name: '存款', value: bankAmount });
+      if (bankAmount > 0.01) data.push({ name: '现金', value: bankAmount });
       return data;
     },
     containerClass() {

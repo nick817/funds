@@ -105,11 +105,43 @@ export default {
           if (config.assetListM) {
             config.fundListM = config.fundListM || [];
             config.stockListM = config.stockListM || [];
+            config.bankList = config.bankList || [];
             config.assetListM.forEach(item => {
-              if (item.assetType === '股票') {
-                config.stockListM.push(item);
+              const assetType = item.assetType || '';
+              if (assetType === '股票') {
+                config.stockListM.push({
+                  code: item.code,
+                  name: item.name,
+                  num: parseFloat(item.num) || 0,
+                  cost: parseFloat(item.cost) || 0,
+                  accountType: item.accountType || ""
+                });
+              } else if (assetType === '现金') {
+                config.bankList.push({
+                  bankName: item.name || "现金",
+                  principal: parseFloat(item.amount) || 0,
+                  totalAmount: parseFloat(item.amount) || 0,
+                  accountType: item.accountType || ""
+                });
+              } else if (assetType === '私募' || assetType === '投顾') {
+                config.fundListM.push({
+                  code: item.code,
+                  name: item.name,
+                  num: parseFloat(item.num) || 0,
+                  cost: parseFloat(item.cost) || 0,
+                  isPrivate: true,
+                  nav: item.num > 0 ? (parseFloat(item.amount) / parseFloat(item.num)).toFixed(4) : 0,
+                  accountType: item.accountType || ""
+                });
               } else {
-                config.fundListM.push(item);
+                // 默认视为基金
+                config.fundListM.push({
+                  code: item.code,
+                  name: item.name,
+                  num: parseFloat(item.num) || 0,
+                  cost: parseFloat(item.cost) || 0,
+                  accountType: item.accountType || ""
+                });
               }
             });
             delete config.assetListM;
@@ -122,15 +154,17 @@ export default {
           }
 
           if (config.cashListM) {
-            config.bankList = config.cashListM.map((item) => {
+            const extraCash = config.cashListM.map((item) => {
               return {
-                bankName: item.bank || item.bankName || "存款",
+                bankName: item.bank || item.bankName || "现金",
                 principal: parseFloat(item.principal) || 0,
                 totalAmount: parseFloat(item.total) || parseFloat(item.totalAmount) || parseFloat(item.principal) || 0,
                 annualIncome: parseFloat(item.annualIncome) || 0,
                 annualRate: parseFloat(item.annualRate) || 0,
+                accountType: item.accountType || ""
               };
             });
+            config.bankList = [...(config.bankList || []), ...extraCash];
             delete config.cashListM;
           }
 
