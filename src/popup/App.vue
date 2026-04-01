@@ -1175,16 +1175,16 @@ export default {
       return this.sumAmount(this.safeDataList);
     },
     freeGains() {
-      return this.sumGains(this.freeDataList);
+      return this.sumGains(this.freeDataList.filter(item => !item.isPrivate));
     },
     safeGains() {
-      return this.sumGains(this.safeDataList);
+      return this.sumGains(this.safeDataList.filter(item => !item.isPrivate));
     },
     freeCostGains() {
-      return this.sumCostGains(this.freeDataList);
+      return this.sumCostGains(this.freeDataList.filter(item => !item.isPrivate));
     },
     safeCostGains() {
-      return this.sumCostGains(this.safeDataList);
+      return this.sumCostGains(this.safeDataList.filter(item => !item.isPrivate));
     },
     fundAmount() {
       return this.sumAmount(this.dataList);
@@ -1214,22 +1214,22 @@ export default {
       return (holdingAmount + bankAmount).toFixed(0);
     },
     fundGains() {
-      return this.sumGains(this.dataList);
+      return this.sumGains(this.dataList.filter(item => !item.isPrivate));
     },
     stockGains() {
       return this.sumGains(this.stockDataList);
     },
     allGains() {
-      return this.sumGains(this.allHoldingList);
+      return this.sumGains(this.allHoldingList.filter(item => !item.isPrivate));
     },
     fundCostGains() {
-      return this.sumCostGains(this.dataList);
+      return this.sumCostGains(this.dataList.filter(item => !item.isPrivate));
     },
     stockCostGains() {
       return this.sumCostGains(this.stockDataList);
     },
     allCostGains() {
-      return this.sumCostGains(this.allHoldingList);
+      return this.sumCostGains(this.allHoldingList.filter(item => !item.isPrivate));
     },
     pieChartData() {
       const data = [];
