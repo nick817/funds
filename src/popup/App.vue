@@ -299,6 +299,7 @@
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
                     @dragend="handleDragEnd($event, el)"
+                    @dblclick="dblclickFund(el)"
                   >
                     <td
                       :class="
@@ -334,6 +335,19 @@
                         type="text"
                       />
                     </td>
+                    <td v-if="!isEdit && (showCostRate || showCost)">
+                       <template v-if="editingFundCode === el.fundcode">
+                        <input
+                          class="btn num small-input"
+                          v-model="el.cost"
+                          @blur="saveFundEdit(el, index)"
+                          @keyup.enter="saveFundEdit(el, index)"
+                          v-focus
+                          type="text"
+                        />
+                      </template>
+                      <span v-else>{{ el.cost || '--' }}</span>
+                    </td>
 
                     <td v-if="showAmount">
                       {{
@@ -367,15 +381,17 @@
                     <th
                       style="text-align:center"
                       v-if="
-                        isEdit &&
+                        (isEdit || editingFundCode === el.fundcode) &&
                           (showAmount || showGains || showCost || showCostRate)
                       "
                     >
                       <input
                         class="btn num"
-                        placeholder="输入持有份额"
                         v-model="el.num"
-                        @input="changeNum(el, index)"
+                        @input="isEdit && changeNum(el, index)"
+                        @blur="!isEdit && saveFundEdit(el, index)"
+                        @keyup.enter="!isEdit && saveFundEdit(el, index)"
+                        placeholder="输入持有份额"
                         type="text"
                       />
                     </th>
@@ -469,18 +485,19 @@
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
                     @dragend="handleDragEnd($event, el)"
+                    @dblclick="dblclickFund(el)"
                   >
                     <td :class="isEdit ? 'fundName-noclick align-left' : 'fundName align-left'" :title="el.name" @click.stop="!isEdit && fundDetail(el)">
                       <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
                     </td>
                     <td v-if="isEdit">{{ el.fundcode }}</td>
-                    <td v-if="showGSZ && !isEdit" @dblclick="editNav(el)">
-                      <template v-if="editingNavCode === el.fundcode && el.isPrivate">
+                    <td v-if="showGSZ && !isEdit" @dblclick="!el.isPrivate && dblclickFund(el)">
+                      <template v-if="(editingNavCode === el.fundcode && el.isPrivate) || (editingFundCode === el.fundcode && el.isPrivate)">
                         <input
                           class="btn num small-input"
                           v-model="el.gsz"
-                          @blur="saveNav(el)"
-                          @keyup.enter="saveNav(el)"
+                          @blur="saveFundEdit(el, index)"
+                          @keyup.enter="saveFundEdit(el, index)"
                           v-focus
                           type="text"
                         />
@@ -492,14 +509,20 @@
                     <td v-if="isEdit && (showCostRate || showCost)">
                       <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
                     </td>
+                    <td v-if="!isEdit && (showCostRate || showCost)">
+                      <template v-if="editingFundCode === el.fundcode">
+                        <input class="btn num small-input" v-model="el.cost" @blur="saveFundEdit(el, index)" @keyup.enter="saveFundEdit(el, index)" v-focus type="text" />
+                      </template>
+                      <span v-else>{{ el.cost || '--' }}</span>
+                    </td>
                     <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
                     <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
                     <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
-                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
-                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
+                    <th style="text-align:center" v-if="(isEdit || editingFundCode === el.fundcode) && (showAmount || showGains || showCost || showCostRate)">
+                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="isEdit && changeNum(el, index)" @blur="!isEdit && saveFundEdit(el, index)" @keyup.enter="!isEdit && saveFundEdit(el, index)" type="text" />
                     </th>
                     <td v-if="isEdit && BadgeContent == 1">
                       <input @click="slt(el.fundcode)" :class="el.fundcode == RealtimeFundcode ? 'slt' : ''" class="btn edit" value="✔" type="button" />
@@ -580,18 +603,19 @@
                     @dragover.prevent="handleDragOver($event, el)"
                     @dragenter="handleDragEnter($event, el, index)"
                     @dragend="handleDragEnd($event, el)"
+                    @dblclick="dblclickFund(el)"
                   >
                     <td :class="isEdit ? 'fundName-noclick align-left' : 'fundName align-left'" :title="el.name" @click.stop="!isEdit && fundDetail(el)">
                       <span class="hasReplace-tip" v-if="el.hasReplace">✔</span>{{ el.name }}
                     </td>
                     <td v-if="isEdit">{{ el.fundcode }}</td>
-                    <td v-if="showGSZ && !isEdit" @dblclick="editNav(el)">
-                      <template v-if="editingNavCode === el.fundcode && el.isPrivate">
+                    <td v-if="showGSZ && !isEdit" @dblclick="!el.isPrivate && dblclickFund(el)">
+                      <template v-if="(editingNavCode === el.fundcode && el.isPrivate) || (editingFundCode === el.fundcode && el.isPrivate)">
                         <input
                           class="btn num small-input"
                           v-model="el.gsz"
-                          @blur="saveNav(el)"
-                          @keyup.enter="saveNav(el)"
+                          @blur="saveFundEdit(el, index)"
+                          @keyup.enter="saveFundEdit(el, index)"
                           v-focus
                           type="text"
                         />
@@ -603,14 +627,20 @@
                     <td v-if="isEdit && (showCostRate || showCost)">
                       <input class="btn num" placeholder="持仓成本价" v-model="el.cost" @input="changeCost(el, index)" type="text" />
                     </td>
+                    <td v-if="!isEdit && (showCostRate || showCost)">
+                      <template v-if="editingFundCode === el.fundcode">
+                        <input class="btn num small-input" v-model="el.cost" @blur="saveFundEdit(el, index)" @keyup.enter="saveFundEdit(el, index)" v-focus type="text" />
+                      </template>
+                      <span v-else>{{ el.cost || '--' }}</span>
+                    </td>
                     <td v-if="showAmount">{{ parseFloat(el.amount).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCost" :class="el.costGains >= 0 ? 'up' : 'down'">{{ parseFloat(el.costGains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="showCostRate" :class="el.costGainsRate >= 0 ? 'up' : 'down'">{{ el.cost > 0 ? el.costGainsRate + "%" : "" }}</td>
                     <td :class="el.gszzl >= 0 ? 'up' : 'down'">{{ el.gszzl }}%</td>
                     <td v-if="showGains" :class="el.gains >= 0 ? 'up' : 'down'">{{ parseFloat(el.gains).toLocaleString("zh", { maximumFractionDigits: 0 }) }}</td>
                     <td v-if="!isEdit">{{ formatUpdateTime(el) }}</td>
-                    <th style="text-align:center" v-if="isEdit && (showAmount || showGains || showCost || showCostRate)">
-                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="changeNum(el, index)" type="text" />
+                    <th style="text-align:center" v-if="(isEdit || editingFundCode === el.fundcode) && (showAmount || showGains || showCost || showCostRate)">
+                      <input class="btn num" placeholder="输入持有份额" v-model="el.num" @input="isEdit && changeNum(el, index)" @blur="!isEdit && saveFundEdit(el, index)" @keyup.enter="!isEdit && saveFundEdit(el, index)" type="text" />
                     </th>
                     <td v-if="isEdit && BadgeContent == 1">
                       <input @click="slt(el.fundcode)" :class="el.fundcode == RealtimeFundcode ? 'slt' : ''" class="btn edit" value="✔" type="button" />
@@ -698,7 +728,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(el, index) in stockDataList" :key="el.stockcode">
+                  <tr v-for="(el, index) in stockDataList" :key="el.stockcode" @dblclick="dblclickStock(el)">
                     <td
                       :class="isEdit ? 'fundName-noclick align-left stockNameCell' : 'fundName align-left stockNameCell'"
                       :title="el.name"
@@ -709,14 +739,25 @@
                     <td v-if="isEdit">{{ el.stockcode }}</td>
                     <td>{{ el.latestPrice }}</td>
                     <td v-if="showCostRate || showCost">
-                      <input
-                        v-if="isEdit"
-                        class="btn num"
-                        placeholder="持仓成本价"
-                        v-model="el.cost"
-                        @input="changeStockCost(el, index)"
-                        type="text"
-                      />
+                      <div v-if="isEdit">
+                        <input
+                          class="btn num"
+                          placeholder="持仓成本价"
+                          v-model="el.cost"
+                          @input="changeStockCost(el, index)"
+                          type="text"
+                        />
+                      </div>
+                      <div v-else-if="editingStockCode === el.stockcode">
+                        <input
+                          class="btn num small-input"
+                          v-model="el.cost"
+                          @blur="saveStockEdit(el, index)"
+                          @keyup.enter="saveStockEdit(el, index)"
+                          v-focus
+                          type="text"
+                        />
+                      </div>
                       <span v-else>{{ formatStockPrice(el.cost) }}</span>
                     </td>
                     <td v-if="showAmount">
@@ -751,15 +792,17 @@
                     <th
                       style="text-align:center"
                       v-if="
-                        isEdit &&
+                        (isEdit || editingStockCode === el.stockcode) &&
                           (showAmount || showGains || showCost || showCostRate)
                       "
                     >
                       <input
                         class="btn num"
-                        placeholder="输入持有股数"
                         v-model="el.num"
-                        @input="changeStockNum(el, index)"
+                        @input="isEdit && changeStockNum(el, index)"
+                        @blur="!isEdit && saveStockEdit(el, index)"
+                        @keyup.enter="!isEdit && saveStockEdit(el, index)"
+                        placeholder="输入持有股数"
                         type="text"
                       />
                     </th>
@@ -1135,6 +1178,8 @@ export default {
       opacity: {},
       opacityValue: 0,
       editingNavCode: null,
+      editingFundCode: null,
+      editingStockCode: null,
       isRefresh: false,
       marketShadow: false,
     };
@@ -2518,7 +2563,6 @@ export default {
       this.stockListM = this.stockListM.filter(function(ele) {
         return ele.code != id;
       });
-
       chrome.storage.sync.set(
         {
           stockListM: this.stockListM,
@@ -2575,7 +2619,7 @@ export default {
     },
     handleDragEnd(e, item) {
       this.dragging = null;
-      if (item.fundcode) {
+      if (item && item.fundcode) {
         chrome.storage.local.set(
           {
             fundListM: this.fundListM,
@@ -2643,6 +2687,68 @@ export default {
         );
         this.indFundData = newIndDataItems;
       }
+    },
+    dblclickFund(el) {
+      if (this.isEdit) return;
+      this.editingFundCode = el.fundcode;
+    },
+    saveFundEdit(el, index) {
+      this.editingFundCode = null;
+      let fund = this.fundListM.find((item) => item.code === el.fundcode);
+      if (fund) {
+        fund.num = parseFloat(el.num) || 0;
+        fund.cost = parseFloat(el.cost) || 0;
+        if (el.isPrivate) {
+          fund.nav = parseFloat(el.gsz) || 0;
+        }
+      } else {
+        this.fundListM.push({
+          code: el.fundcode,
+          num: parseFloat(el.num) || 0,
+          cost: parseFloat(el.cost) || 0,
+          accountType: el.accountType || "",
+        });
+      }
+
+      chrome.storage.local.set({ fundListM: this.fundListM }, () => {
+        el.amount = this.calculateMoney(el);
+        el.costGains = this.calculateCost(el);
+        el.costGainsRate = this.calculateCostRate(el);
+        if (el.isPrivate) {
+          el.dwjz = parseFloat(el.gsz) || 0;
+          el.gains = 0;
+        }
+        if (this.dataList[index]) {
+          this.$set(this.dataList, index, { ...el });
+        }
+      });
+    },
+    dblclickStock(el) {
+      if (this.isEdit) return;
+      this.editingStockCode = el.stockcode;
+    },
+    saveStockEdit(el, index) {
+      this.editingStockCode = null;
+      let stock = this.stockListM.find((item) => item.code === el.stockcode);
+      if (stock) {
+        stock.num = parseFloat(el.num) || 0;
+        stock.cost = parseFloat(el.cost) || 0;
+      }
+
+      chrome.storage.sync.set({ stockListM: this.stockListM }, () => {
+        const latestPrice = parseFloat(el.latestPriceValue) || 0;
+        const prevClose = parseFloat(el.dwjz) || latestPrice;
+        el.num = parseFloat(el.num) || 0;
+        el.cost = parseFloat(el.cost) || 0;
+        el.amount = latestPrice * el.num;
+        el.gains = (latestPrice - prevClose) * el.num;
+        el.costGains = (latestPrice - el.cost) * el.num;
+        el.costGainsRate = el.cost > 0 ? (((latestPrice - el.cost) / el.cost) * 100).toFixed(2) : 0;
+        
+        if (this.stockDataList[index]) {
+          this.$set(this.stockDataList, index, { ...el });
+        }
+      });
     },
   },
 };
